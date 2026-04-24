@@ -187,6 +187,18 @@ let selectedCountries = new Set();
 let imageBase64 = null;
 let imageMediaType = 'image/jpeg';
 let regulationInfo = null;
+let geminiApiKey = null; // GASから起動時に取得
+
+// 起動時にGASからGemini APIキーを取得
+(async () => {
+  try {
+    const res = await fetch(GAS_URL + '?action=getKey');
+    const data = await res.json();
+    if (data.status === 'ok') geminiApiKey = data.key;
+  } catch(e) {
+    console.warn('APIキー取得失敗:', e.message);
+  }
+})();
 
 // Country grid
 COUNTRIES.forEach(c => {
@@ -246,31 +258,53 @@ function loadImage(file) {
   reader.readAsDataURL(file);
 }
 
-// GAS呼び出し（全てGETで送る）
-async function callGAS(prompt, b64 = null, useSearch = false) {
-  const payload = {
-    action: 'callGemini',
-    prompt,
-    imageBase64: b64 || null,
-    imageMediaType: b64 ? 'image/jpeg' : null,
-    useSearch
-  };
-  const payloadStr = JSON.stringify(payload);
-  const url = GAS_URL + '?payload=' + encodeURIComponent(payloadStr);
-
+// GAS呼び出し（テキストのみ・GET）
+async function callGAS(prompt, useSearch = false) {
+  const payload = { action: 'callGemini', prompt, imageBase64: null, imageMediaType: null, useSearch };
+  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
   const res = await fetch(url, { method: 'GET', redirect: 'follow' });
   const rawText = await res.text();
   let data;
   try {
     data = JSON.parse(rawText);
   } catch(e) {
-    if (rawText.trim().startsWith('<')) {
-      throw new Error('GAS_URLの設定を確認してください（HTMLが返されています）');
-    }
+    if (rawText.trim().startsWith('<')) throw new Error('GAS_URLの設定を確認してください');
     throw new Error('レスポンスのパースに失敗: ' + rawText.slice(0, 120));
   }
   if (data.status !== 'ok') throw new Error(data.message || 'GASエラー');
   return data.text;
+}
+
+// 画像解析専用：フロントから直接Gemini APIを呼ぶ（GASからキーを取得済み）
+async function callGeminiWithImage(prompt, b64) {
+  if (!geminiApiKey) {
+    // キー未取得の場合は再試行
+    const res = await fetch(GAS_URL + '?action=getKey');
+    const data = await res.json();
+    if (data.status === 'ok') geminiApiKey = data.key;
+    else throw new Error('Gemini APIキーを取得できませんでした');
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [
+        { inline_data: { mime_type: 'image/jpeg', data: b64 } },
+        { text: prompt }
+      ]}],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini APIエラー (${res.status})`);
+  }
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts || [])
+    .filter(p => p.text).map(p => p.text).join('');
+  if (!text) throw new Error('Geminiから応答を取得できませんでした');
+  return text;
 }
 
 // Fetch regulations
@@ -286,7 +320,7 @@ JSONのみで返してください（説明文・マークダウン不要）：
 {"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"タイトル","url":"URL"}]}}}`;
 
   try {
-    const res = await callGAS(prompt, null, true);
+    const res = await callGAS(prompt, true);
     regulationInfo = parseJSON(res);
     const box = document.getElementById('reg-info-box');
     box.style.display = 'block';
@@ -318,10 +352,10 @@ async function runCheck() {
   setLoading('check', true, '確認中... (原材料を読み取り中)');
 
   try {
-    // Step 1: 画像から原材料抽出（GAS経由）
-    const extractRes = await callGAS(
-      `この画像の原材料表示を読み取りすべての原材料・添加物をリストアップしてください。日本語の原材料名そのまま。JSONのみ：{"ingredients":["原材料1","原材料2"],"raw_text":"原材料表示テキスト全体"}`,
-      imageBase64, false
+    // Step 1: 画像から原材料抽出（フロントから直接Gemini API）
+    const extractRes = await callGeminiWithImage(
+      `この画像の原材料表示を読み取りすべての原材料・添加物をリストアップしてください。日本語の原材料名そのまま。JSONのみで返してください（説明文不要）：{"ingredients":["原材料1","原材料2"],"raw_text":"原材料表示テキスト全体"}`,
+      imageBase64
     );
     const extractData = parseJSON(extractRes);
     const ingredients = extractData.ingredients || [];
@@ -339,7 +373,7 @@ async function runCheck() {
 JSONのみで返してください（説明文・マークダウン不要）：
 {"ingredients":["原材料リスト"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"問題原材料","type":"banned|restricted|caution","reason":"理由100字以内","detail":"詳細200字以内","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}}}`;
 
-    const checkRes = await callGAS(checkPrompt, null, true);
+    const checkRes = await callGAS(checkPrompt, true);
     const checkData = parseJSON(checkRes);
     renderResults(checkData, ingredients);
     setLoading('check', false, '✓ 確認完了');
