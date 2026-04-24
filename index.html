@@ -170,6 +170,12 @@
 // ================================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWa2DFoCYF7vjSWm2g0FupNxVsoGBbxqvLLNIICtcwTU71zvA7y1BePUSWKrk-Ohka/exec';
 // ================================================================
+// ★ Gemini APIキー（画像解析用・ブラウザ直接呼び出し）
+// ================================================================
+const GEMINI_API_KEY = 'AIzaSyBd0OPbF6te8Y8x5sez6WagxCd2rwvxzU4'; // ← ここにGemini APIキーを貼る
+const GEMINI_MODEL   = 'gemini-2.5-flash';
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+// ================================================================
 
 const COUNTRIES = [
   { code: 'US', name: 'アメリカ',     flag: '🇺🇸' },
@@ -335,10 +341,10 @@ async function runCheck() {
   setLoading('check', true, '確認中... (原材料を読み取り中)');
 
   try {
-    // Step 1: 画像から原材料抽出
-    const extractRes = await callGAS(
+    // Step 1: 画像から原材料抽出（ブラウザから直接Gemini API呼び出し）
+    const extractRes = await callGeminiDirect(
       `この画像の原材料表示を読み取りすべての原材料・添加物をリストアップしてください。日本語の原材料名そのまま。JSONのみ：{"ingredients":["原材料1","原材料2"],"raw_text":"原材料表示テキスト全体"}`,
-      imageBase64, false
+      imageBase64
     );
     const extractData = parseJSON(extractRes);
     const ingredients = extractData.ingredients || [];
@@ -448,6 +454,30 @@ function toggleSrc(id) {
   el.previousElementSibling.textContent = el.classList.contains('open') ? '▼ ソースを閉じる' : '▶ ソースを見る';
 }
 function toggleAcc(id) { document.getElementById(id).classList.toggle('open'); }
+
+// 画像解析専用：ブラウザからGemini APIを直接呼び出す
+async function callGeminiDirect(prompt, b64) {
+  const res = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [
+        { inline_data: { mime_type: 'image/jpeg', data: b64 } },
+        { text: prompt }
+      ]}],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini APIエラー (${res.status})`);
+  }
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts || [])
+    .filter(p => p.text).map(p => p.text).join('');
+  if (!text) throw new Error('Geminiから応答を取得できませんでした');
+  return text;
+}
 
 function parseJSON(text) {
   const clean = text.replace(/```json|```/g, '').trim();
