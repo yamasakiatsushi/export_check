@@ -231,7 +231,6 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
             <span id="run-label">取得実行</span>
           </button>
         </div>
-        <div class="ac-note">💡 選択後にまとめて取得します（APIの無駄遣いを防ぐため）</div>
       </div>
     </div>
 
@@ -326,7 +325,7 @@ function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); d
 function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel')); updateBulkSub(); }
 function updateBulkSub() {
   const n = selectedCountries.size;
-  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて今すぐ取得` : '対象国を選択してください';
+  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて取得` : '対象国を選択してください';
 }
 
 // ── Country Reg List (Step3 展開) ──
