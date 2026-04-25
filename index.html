@@ -391,13 +391,25 @@ async function runCheck() {
     // Step 2: 規制照合
     setLoading('check', true, '確認中... (規制と照合中)');
     const countryNames = [...selectedCountries].map(c => COUNTRIES.find(x => x.code === c).name).join('、');
-    const regCtx = regulationInfo ? `\n事前取得済み規制情報:\n${JSON.stringify(regulationInfo)}` : '';
-    const checkPrompt = `以下の原材料を各国食品輸入規制と照合してください。${regCtx}
+    // regulationInfoから選択国のsummaryとkey_restrictionsのみ抽出（プロンプト肥大化防止）
+    let regCtx = '';
+    if (regulationInfo?.countries) {
+      const lines = [];
+      [...selectedCountries].forEach(code => {
+        const info = regulationInfo.countries[code];
+        if (info) {
+          lines.push(`${info.name}: ${info.summary || ''} 主な規制: ${(info.key_restrictions||[]).join('、')}`);
+        }
+      });
+      if (lines.length) regCtx = '\n参考規制情報:\n' + lines.join('\n');
+    }
+    const checkPrompt = `以下の原材料を各国の食品輸入規制と照合してください。${regCtx}
 
 原材料：${ingredients.join('、')}
 対象国：${countryNames}（国コード: ${[...selectedCountries].join(', ')}）
 
-JSONのみで返してください（説明文・マークダウン不要）：
+禁止添加物・制限成分・要確認事項を特定してください。
+JSONのみで返してください（説明文・マークダウン・コードブロック不要）：
 {"ingredients":["原材料リスト"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"問題原材料","type":"banned|restricted|caution","reason":"理由100字以内","detail":"詳細200字以内","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}}}`;
 
     const checkRes = await callGAS(checkPrompt, true);
