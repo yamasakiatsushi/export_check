@@ -339,17 +339,27 @@ ${info.text}`;
       }
     });
 
-    const prompt = `以下はJETROの各国食品輸入規制ページから取得したテキストです。
-各国の輸入規制について禁止・制限添加物、放射性物質規制、宗教的要件、規制機関を整理してください。
+    const prompt = `以下はJETROの食品輸入規制ページから取得したテキストです。
+対象国：${countryNames}（国コード: ${countryCodes.join(', ')}）
+
+【重要】上記の対象国のみについて整理してください。それ以外の国は絶対に含めないでください。
+各国について：禁止・制限添加物、放射性物質規制、宗教的要件、規制機関を整理してください。
 
 ${jetroContext}
 
-JSONのみで返してください（説明文・マークダウン不要）：
-{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"JETROページ","url":"${jetroData.results[countryCodes[0]]?.url||''}"}]}}}
-国コードは ${countryCodes.join(', ')} を使用してください。`;
+JSONのみで返してください（説明文・マークダウン・コードブロック不要）：
+{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"JETROページ","url":"ページURL"}]}}}
+国コードは必ず ${countryCodes.join(', ')} のみを使用してください。`;
 
     const summaryRes = await callGAS(prompt, false);
     regulationInfo = parseJSON(summaryRes);
+
+    // 選択国以外をフィルタ（念のため）
+    if (regulationInfo?.countries) {
+      Object.keys(regulationInfo.countries).forEach(code => {
+        if (!countryCodes.includes(code)) delete regulationInfo.countries[code];
+      });
+    }
 
     let html = `<div class="reg-header">✓ JETROから規制情報を取得しました（${countryNames}）</div>`;
     if (regulationInfo?.countries) {
