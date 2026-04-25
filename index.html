@@ -64,39 +64,26 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
 .cbtn.sel{border-color:var(--blue);background:var(--blue-bg);color:var(--blue);font-weight:500;}
 
 /* ─ Step3: Regulation ─ */
-.action-cards{display:flex;flex-direction:column;gap:10px;padding:14px 14px 8px;}
-.action-card{border-radius:12px;border:1.5px solid var(--blue-border);background:var(--blue-bg);overflow:hidden;}
-.ac-header{display:flex;align-items:center;gap:12px;padding:14px 16px;}
-.ac-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-bg);border:1px solid var(--blue-border);color:var(--blue);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.ac-text{flex:1;}
-.ac-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.2px;}
-.ac-sub{font-size:12px;color:var(--text-sub);margin-top:2px;}
+.s3-body{padding:14px 16px 6px;}
+.s3-action-bar{display:flex;align-items:center;justify-content:space-between;padding:0 0 12px;}
+.s3-action-left{display:flex;align-items:center;gap:10px;}
+.s3-sel-count{font-size:12px;color:var(--blue);font-weight:500;}
 .btn-action{padding:9px 18px;border-radius:980px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:5px;}
 .btn-action:disabled{opacity:0.45;cursor:not-allowed;}
 .btn-spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.expand-toggle{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--blue-border);background:#fff;color:var(--blue);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform 0.2s;}
-.expand-toggle.open{transform:rotate(180deg);}
-.ac-body{border-top:1px solid var(--blue-border);background:#fff;display:none;}
-.ac-body.open{display:block;}
-.cr-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,0.06);cursor:pointer;transition:background 0.12s;user-select:none;}
-.cr-row:last-child{border-bottom:none;}
-.cr-row.sel{background:var(--blue-bg);}
-.cr-flag{font-size:18px;flex-shrink:0;}
+.cr-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.cr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#fafafa;border:1.5px solid var(--border);cursor:pointer;transition:all 0.12s;user-select:none;}
+.cr.checked{background:var(--blue-bg);border-color:var(--blue-border);}
+.cr-cb{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;transition:all 0.15s;}
+.cr.checked .cr-cb{background:var(--blue);border-color:var(--blue);}
+.cr-flag{font-size:17px;flex-shrink:0;}
 .cr-name{flex:1;font-size:13px;font-weight:500;}
-.cr-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-.cr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.cr-status-text{font-size:11px;}
-.ok-text{color:var(--ok);}
-.warn-text{color:var(--warn);}
-.none-text{color:var(--none-c);}
-.cr-date{font-size:11px;color:var(--text-ter);min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
-.cr-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;transition:all 0.15s;}
-.cr-check.checked{background:var(--blue);border-color:var(--blue);}
-.run-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--blue-bg);border-top:1px solid var(--blue-border);}
-.run-bar-text{font-size:12px;color:var(--blue);}
-.ac-note{font-size:11px;color:var(--text-sub);padding:8px 14px 12px;line-height:1.6;}
-.reg-status-box{display:none;margin:0 14px 12px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;}
+.cr-badge{padding:3px 9px;border-radius:20px;font-size:11px;flex-shrink:0;}
+.cr-badge.fresh{background:var(--ok-bg);color:var(--ok);}
+.cr-badge.stale{background:var(--warn-bg);color:var(--warn);}
+.cr-badge.none-data{background:rgba(0,0,0,0.05);color:var(--text-ter);}
+.reg-status-box{display:none;margin:0 0 4px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;}
 .reg-status-box.ok{background:var(--ok-bg);color:var(--ok);}
 .reg-status-box.error{background:var(--danger-bg);color:var(--danger);}
 
@@ -192,52 +179,23 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
 <!-- Step 3 -->
 <div class="card">
   <div class="card-hd">
-    <div class="card-title"><div class="snum green">3</div><h2>輸入規制情報の更新</h2></div>
+    <div class="card-title"><div class="snum">3</div><h2>輸入規制情報の更新</h2></div>
   </div>
-
-  <div class="action-cards">
-
-    <!-- 一括更新 -->
-    <div class="action-card">
-      <div class="ac-header">
-        <div class="ac-icon">↻</div>
-        <div class="ac-text">
-          <div class="ac-title">一括更新</div>
-          <div class="ac-sub" id="bulk-sub">選択中の全ての国の情報をまとめて最新化</div>
-        </div>
-        <button class="btn-action" id="btn-bulk" onclick="fetchBulk()">
-          <span id="bulk-spinner" class="btn-spinner"></span>
-          <span id="bulk-label">更新実行</span>
-        </button>
+  <div class="s3-body">
+    <div class="s3-action-bar">
+      <div class="s3-action-left">
+        <button class="link-btn" onclick="selectAllUpdate()">全選択</button>
+        <button class="link-btn" style="color:rgba(0,0,0,0.35);" onclick="clearAllUpdate()">解除</button>
+        <span class="s3-sel-count" id="sel-count"></span>
       </div>
+      <button class="btn-action" id="btn-run" onclick="fetchSelected()">
+        <span id="run-spinner" class="btn-spinner"></span>
+        <span id="run-label">↻ 更新実行</span>
+      </button>
     </div>
-
-    <!-- 個別更新 -->
-    <div class="action-card">
-      <div class="ac-header" onclick="toggleExpand()" style="cursor:pointer;">
-        <div class="ac-icon">↻</div>
-        <div class="ac-text">
-          <div class="ac-title">個別更新</div>
-          <div class="ac-sub">国を指定して情報を最新化（取得日確認）</div>
-        </div>
-        <div class="expand-toggle" id="expand-toggle">▼</div>
-      </div>
-      <div class="ac-body" id="ac-body">
-        <div id="country-reg-list"></div>
-        <div class="run-bar" id="run-bar" style="display:none;">
-          <span class="run-bar-text" id="run-bar-text"></span>
-          <button class="btn-action" id="btn-run" onclick="fetchSelected()">
-            <span id="run-spinner" class="btn-spinner"></span>
-            <span id="run-label">更新実行</span>
-          </button>
-        </div>
-        
-      </div>
-    </div>
-
+    <div class="cr-list" id="country-reg-list"></div>
+    <div class="reg-status-box" id="reg-status-box"></div>
   </div>
-
-  <div class="reg-status-box" id="reg-status-box"></div>
 </div>
 
 <!-- Step 4 -->
@@ -318,51 +276,67 @@ function buildCountryGrid() {
   });
 }
 function toggleCountry(code, btn) {
-  if (selectedCountries.has(code)) { selectedCountries.delete(code); btn.classList.remove('sel'); }
-  else { selectedCountries.add(code); btn.classList.add('sel'); }
-  updateBulkSub();
+  if (selectedCountries.has(code)) {
+    selectedCountries.delete(code);
+    selectedForUpdate.delete(code); // Step3からも除外
+    btn.classList.remove('sel');
+  } else {
+    selectedCountries.add(code);
+    selectedForUpdate.add(code); // Step3にも追加
+    btn.classList.add('sel');
+  }
+  buildCountryRegList();
 }
-function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); document.querySelector(`[data-code="${c.code}"]`).classList.add('sel'); }); updateBulkSub(); }
-function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel')); updateBulkSub(); }
-function updateBulkSub() {
-  const n = selectedCountries.size;
-  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中の全ての国の情報をまとめて最新化` : '対象国を選択してください';
+function selectAll() {
+  COUNTRIES.forEach(c => { selectedCountries.add(c.code); selectedForUpdate.add(c.code); document.querySelector(`[data-code="${c.code}"]`).classList.add('sel'); });
+  buildCountryRegList();
+}
+function clearAll() {
+  selectedCountries.clear(); selectedForUpdate.clear();
+  document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel'));
+  buildCountryRegList();
 }
 
-// ── Country Reg List (Step3 展開) ──
+// ── Country Reg List (Step3) ──
 function buildCountryRegList() {
   const list = document.getElementById('country-reg-list');
   list.innerHTML = '';
-  COUNTRIES.forEach(c => {
-    const info = regulationInfo[c.code];
+  // ②で選択した国のみ表示
+  const codes = COUNTRIES.filter(c => selectedCountries.has(c.code));
+  if (codes.length === 0) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--text-ter);padding:8px 2px;">対象国を選択してください</p>';
+    updateSelCount();
+    return;
+  }
+  codes.forEach(c => {
     const row = document.createElement('div');
-    row.className = 'cr-row' + (selectedForUpdate.has(c.code) ? ' sel' : '');
+    row.className = 'cr' + (selectedForUpdate.has(c.code) ? ' checked' : '');
     row.id = `cr-${c.code}`;
     row.onclick = () => toggleUpdateSelect(c.code);
     row.innerHTML = `
+      <div class="cr-cb">${selectedForUpdate.has(c.code) ? '✓' : ''}</div>
       <span class="cr-flag">${c.flag}</span>
       <span class="cr-name">${c.name}</span>
-      <div class="cr-info">${statusBadge(c.code)}</div>
-      <span class="cr-date">${fetchedDate(c.code)}</span>
-      <div class="cr-check ${selectedForUpdate.has(c.code) ? 'checked' : ''}" id="chk-${c.code}">${selectedForUpdate.has(c.code) ? '✓' : ''}</div>`;
+      <div class="cr-badge ${badgeClass(c.code)}">${badgeText(c.code)}</div>`;
     list.appendChild(row);
   });
-  updateRunBar();
+  updateSelCount();
 }
 
-function statusBadge(code) {
+function badgeClass(code) {
   const info = regulationInfo[code];
-  if (!info) return `<div class="cr-dot" style="background:var(--none-c)"></div><span class="cr-status-text none-text">未取得</span>`;
+  if (!info) return 'none-data';
   const days = Math.floor((Date.now() - info.fetchedAt) / 86400000);
-  if (days > STALE_DAYS) return `<div class="cr-dot" style="background:var(--warn)"></div><span class="cr-status-text warn-text">古い(${days}日前)</span>`;
-  return `<div class="cr-dot" style="background:var(--ok)"></div><span class="cr-status-text ok-text">取得済み</span>`;
+  return days > STALE_DAYS ? 'stale' : 'fresh';
 }
 
-function fetchedDate(code) {
+function badgeText(code) {
   const info = regulationInfo[code];
-  if (!info) return '—';
+  if (!info) return '未取得';
   const d = new Date(info.fetchedAt);
-  return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+  const dateStr = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+  const days = Math.floor((Date.now() - info.fetchedAt) / 86400000);
+  return `${dateStr} 取得`;
 }
 
 function toggleUpdateSelect(code) {
@@ -371,20 +345,24 @@ function toggleUpdateSelect(code) {
   buildCountryRegList();
 }
 
-function updateRunBar() {
-  const bar = document.getElementById('run-bar');
-  const txt = document.getElementById('run-bar-text');
-  if (selectedForUpdate.size === 0) { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-  const names = [...selectedForUpdate].map(c => COUNTRIES.find(x => x.code === c).name).join('・');
-  txt.textContent = `${names} を選択中`;
+function selectAllUpdate() {
+  // Step2で選択中の国のみ対象
+  selectedCountries.forEach(code => selectedForUpdate.add(code));
+  // Step2未選択の国はselectedForUpdateから除外
+  [...selectedForUpdate].forEach(code => { if (!selectedCountries.has(code)) selectedForUpdate.delete(code); });
+  buildCountryRegList();
+}
+function clearAllUpdate() {
+  selectedForUpdate.clear();
+  buildCountryRegList();
 }
 
-function toggleExpand() {
-  const body = document.getElementById('ac-body');
-  const toggle = document.getElementById('expand-toggle');
-  body.classList.toggle('open');
-  toggle.classList.toggle('open');
+function updateSelCount() {
+  const n = selectedForUpdate.size;
+  const el = document.getElementById('sel-count');
+  if (el) el.textContent = n > 0 ? `${n}か国 選択中` : '';
+  const btn = document.getElementById('btn-run');
+  if (btn) btn.disabled = n === 0;
 }
 
 // ── Image Upload ──
@@ -473,32 +451,10 @@ JSONのみで返してください（コードブロック不要）：
   return parsed;
 }
 
-// ── Bulk update ──
-async function fetchBulk() {
-  if (selectedCountries.size === 0) { showToast('⚠ 対象国を選択してください'); return; }
-  setLoading('bulk', true, '取得中...');
-  const box = document.getElementById('reg-status-box');
-  box.style.display = 'none';
-  try {
-    const codes = [...selectedCountries];
-    await fetchRegulations(codes);
-    buildCountryRegList();
-    box.className = 'reg-status-box ok';
-    box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を取得しました`;
-    box.style.display = 'block';
-    showToast('✓ 一括取得完了');
-  } catch(e) {
-    box.className = 'reg-status-box error';
-    box.textContent = `取得エラー: ${e.message}`;
-    box.style.display = 'block';
-  }
-  setLoading('bulk', false, '更新実行');
-}
-
-// ── Selected update ──
+// ── Update (selected countries) ──
 async function fetchSelected() {
   if (selectedForUpdate.size === 0) { showToast('⚠ 更新する国を選択してください'); return; }
-  setLoading('run', true, '取得中...');
+  setLoading('run', true, '更新中...');
   const box = document.getElementById('reg-status-box');
   box.style.display = 'none';
   try {
@@ -507,15 +463,15 @@ async function fetchSelected() {
     selectedForUpdate.clear();
     buildCountryRegList();
     box.className = 'reg-status-box ok';
-    box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を取得しました`;
+    box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を更新しました`;
     box.style.display = 'block';
-    showToast('✓ 取得完了');
+    showToast('✓ 更新完了');
   } catch(e) {
     box.className = 'reg-status-box error';
     box.textContent = `取得エラー: ${e.message}`;
     box.style.display = 'block';
   }
-  setLoading('run', false, '更新実行');
+  setLoading('run', false, '↻ 更新実行');
 }
 
 // ── Run Check ──
