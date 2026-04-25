@@ -494,12 +494,17 @@ function toggleSrc(id) {
 function toggleAcc(id) { document.getElementById(id).classList.toggle('open'); }
 
 function parseJSON(text) {
-  const clean = text.replace(/```json|```/g, '').trim();
-  try { return JSON.parse(clean); } catch {
-    const m = clean.match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch {} }
-    throw new Error('JSONの解析に失敗しました');
+  const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  // まず全体をパース
+  try { return JSON.parse(clean); } catch {}
+  // { } で囲まれた部分を抽出
+  const start = clean.indexOf('{');
+  const end   = clean.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(clean.slice(start, end + 1)); } catch {}
   }
+  // それでも失敗したらエラー詳細を出す
+  throw new Error('JSONの解析に失敗しました。モデルの応答: ' + clean.slice(0, 80));
 }
 function setLoading(type, loading, label) {
   document.getElementById(`btn-${type}`).disabled = loading;
