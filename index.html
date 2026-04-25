@@ -202,23 +202,23 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
       <div class="ac-header">
         <div class="ac-icon">↻</div>
         <div class="ac-text">
-          <div class="ac-title">選択国を一括更新</div>
-          <div class="ac-sub" id="bulk-sub">選択中の国をまとめて今すぐ取得</div>
+          <div class="ac-title">一括更新</div>
+          <div class="ac-sub" id="bulk-sub">選択中の全ての国の情報をまとめて最新化</div>
         </div>
         <button class="btn-action" id="btn-bulk" onclick="fetchBulk()">
           <span id="bulk-spinner" class="btn-spinner"></span>
-          <span id="bulk-label">取得実行</span>
+          <span id="bulk-label">更新実行</span>
         </button>
       </div>
     </div>
 
-    <!-- 国ごとに選んで更新 -->
+    <!-- 個別更新 -->
     <div class="action-card">
       <div class="ac-header" onclick="toggleExpand()" style="cursor:pointer;">
         <div class="ac-icon">↻</div>
         <div class="ac-text">
-          <div class="ac-title">国ごとに選んで更新</div>
-          <div class="ac-sub">取得日を確認しながら国を指定</div>
+          <div class="ac-title">個別更新</div>
+          <div class="ac-sub">取得日を確認し指定した国の情報を最新化</div>
         </div>
         <div class="expand-toggle" id="expand-toggle">▼</div>
       </div>
@@ -228,9 +228,10 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
           <span class="run-bar-text" id="run-bar-text"></span>
           <button class="btn-action" id="btn-run" onclick="fetchSelected()">
             <span id="run-spinner" class="btn-spinner"></span>
-            <span id="run-label">取得実行</span>
+            <span id="run-label">更新実行</span>
           </button>
         </div>
+        
       </div>
     </div>
 
@@ -325,7 +326,7 @@ function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); d
 function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel')); updateBulkSub(); }
 function updateBulkSub() {
   const n = selectedCountries.size;
-  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて取得` : '対象国を選択してください';
+  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて今すぐ取得` : '対象国を選択してください';
 }
 
 // ── Country Reg List (Step3 展開) ──
@@ -544,12 +545,23 @@ async function runCheck() {
         return info ? `${code}:${info.data?.summary||''}` : '';
       }).filter(Boolean).join('\n');
     }
+    // JETROのURLを規制情報から取得
+    const jetroUrls = {};
+    codes.forEach(code => {
+      const info = regulationInfo[code];
+      if (info?.data?.sources?.length) {
+        const jetro = info.data.sources.find(s => s.url && s.url.includes('jetro.go.jp'));
+        if (jetro) jetroUrls[code] = jetro;
+      }
+    });
+
     const checkPrompt = `原材料：${ingredients.join('、')}
 対象国：${codes.join(',')}（${countryNames}）${regCtx}
 
 各国への日本からの食品輸出規制で問題のある原材料を特定してください。
+URLは絶対に捏造しないでください。sourcesのurlは空文字にしてください。
 JSONのみ（コードブロック不要）：
-{"ingredients":["原材料"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"原材料","type":"banned|restricted|caution","reason":"理由60字","detail":"詳細150字","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}}}`;
+{"ingredients":["原材料"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"原材料","type":"banned|restricted|caution","reason":"理由60字","detail":"詳細150字","sources":[{"title":"出典名のみ","url":""}]}],"note":"注意またはnull"}}}`;
 
     const checkRes = await callGAS(checkPrompt, false);
     const checkData = parseJSON(checkRes);
@@ -605,10 +617,17 @@ function renderResults(data, rawIngredients) {
       : cautions.length>0 ? `<span class="status-badge badge-warn">要確認</span>`
       : `<span class="status-badge badge-ok">問題なし</span>`;
     let bodyHTML = '';
-    banned.forEach(i => { bodyHTML += `<div class="issue-item"><div class="issue-name">🚫 ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
-    cautions.forEach(i => { bodyHTML += `<div class="caution-item"><div class="caution-name">⚠️ ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
+    // JETROリンクをlocalStorageから取得
+    const regInfo = regulationInfo[code];
+    const jetroSource = regInfo?.data?.sources?.find(s => s.url && s.url.includes('jetro.go.jp'));
+    const jetroLinkHTML = jetroSource
+      ? `<a class="source-link" href="${jetroSource.url}" target="_blank" rel="noopener" style="margin-top:6px;display:inline-block;">🔗 JETROページで詳細を確認</a>`
+      : '';
+
+    banned.forEach(i => { bodyHTML += `<div class="issue-item"><div class="issue-name">🚫 ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${jetroLinkHTML}</div>`; });
+    cautions.forEach(i => { bodyHTML += `<div class="caution-item"><div class="caution-name">⚠️ ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${jetroLinkHTML}</div>`; });
     if (result.note) bodyHTML += `<p style="font-size:12px;margin-top:4px;">📋 ${result.note}</p>`;
-    if (!bodyHTML) bodyHTML = `<p style="color:var(--ok);">この国への輸出に関する明らかな規制該当項目は見つかりませんでした。</p>`;
+    if (!bodyHTML) bodyHTML = `<p style="color:var(--ok);">この国への輸出に関する明らかな規制該当項目は見つかりませんでした。</p>${jetroLinkHTML}`;
     countriesHTML += `<div class="country-result" id="res-${code}">
       <div class="country-result-header" onclick="toggleAcc('res-${code}')">
         <span class="cflag">${country.flag}</span><span class="cname">${country.name}</span>${badge}<span class="chevron">▼</span>
@@ -629,11 +648,17 @@ function renderResults(data, rawIngredients) {
 function renderSources(sources) {
   if (!sources?.length) return '';
   const id = 'src-'+Math.random().toString(36).slice(2);
-  const links = sources.map(s => s.url?.startsWith('http')
-    ? `<a class="source-link" href="${s.url}" target="_blank" rel="noopener">🔗 ${s.title||s.url}</a>`
-    : `<span style="font-size:11px;color:var(--text-ter);">📄 ${s.title}</span>`
-  ).join('');
-  return `<button class="sources-toggle" onclick="toggleSrc('${id}')">▶ ソースを見る</button><div class="sources-list" id="${id}">${links}</div>`;
+  const links = sources.map(s => {
+    // JETROのURLは信頼できるのでリンク表示、それ以外はテキストのみ
+    const isJetro = s.url && s.url.includes('jetro.go.jp');
+    if (isJetro) {
+      return `<a class="source-link" href="${s.url}" target="_blank" rel="noopener">🔗 ${s.title||s.url}</a>`;
+    }
+    // Geminiが生成したURLは不正確な場合があるためテキスト表示のみ
+    return `<span style="font-size:11px;color:var(--text-ter);display:block;margin-bottom:4px;">📄 ${s.title||s.url}</span>`;
+  }).join('');
+  const note = `<span style="font-size:10px;color:var(--text-ter);display:block;margin-top:6px;">※ JETRO以外のURLはAI生成のため参考情報です</span>`;
+  return `<button class="sources-toggle" onclick="toggleSrc('${id}')">▶ ソースを見る</button><div class="sources-list" id="${id}">${links}${note}</div>`;
 }
 function toggleSrc(id){ const el=document.getElementById(id); el.classList.toggle('open'); el.previousElementSibling.textContent=el.classList.contains('open')?'▼ ソースを閉じる':'▶ ソースを見る'; }
 function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
