@@ -45,12 +45,12 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
 .card-hd h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;}
 
 /* ─ Step1: Upload ─ */
-.drop{border:1.5px dashed rgba(0,0,0,0.15);border-radius:10px;padding:26px 16px;text-align:center;background:#fafafa;cursor:pointer;margin:14px 18px;transition:all 0.2s;}
-.drop:hover,.drop.drag-over{border-color:var(--blue);background:var(--blue-bg);}
-.drop-icon{font-size:28px;margin-bottom:6px;}
-.drop-label{font-size:14px;color:var(--blue);font-weight:500;}
-.drop-sub{font-size:12px;color:var(--text-sub);margin-top:3px;}
+
 #file-input{display:none;}
+#file-input-gallery{display:none;}
+.upload-btns{display:flex;gap:8px;margin:14px 18px;}
+.upload-btn{flex:1;padding:11px 8px;border-radius:10px;border:1.5px solid var(--border);background:#fafafa;color:var(--blue);font-size:13px;font-family:var(--font);font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s;}
+.upload-btn:hover{border-color:var(--blue);background:var(--blue-bg);}
 #preview-wrap{display:none;margin:0 18px 14px;border-radius:10px;overflow:hidden;position:relative;}
 #preview-img{width:100%;max-height:220px;object-fit:cover;display:block;}
 #preview-remove{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;color:#fff;font-size:12px;padding:4px 10px;cursor:pointer;}
@@ -152,12 +152,12 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
   <div class="card-hd">
     <div class="card-title"><div class="snum">1</div><h2>原材料表示の写真</h2></div>
   </div>
-  <div id="drop-zone" class="drop">
-    <div class="drop-icon">📷</div>
-    <div class="drop-label">タップして写真を選択</div>
-    <div class="drop-sub">カメラ撮影またはファイルから選択</div>
-    <input type="file" id="file-input" accept="image/*">
+  <div class="upload-btns">
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">📷 カメラで撮影</button>
+    <button class="upload-btn" onclick="document.getElementById('file-input-gallery').click()">🖼 ファイルから選択</button>
   </div>
+  <input type="file" id="file-input" accept="image/*" capture="environment">
+  <input type="file" id="file-input-gallery" accept="image/*">
   <div id="preview-wrap">
     <img id="preview-img" src="" alt="プレビュー">
     <button id="preview-remove">✕ 削除</button>
@@ -417,13 +417,10 @@ function updateCheckButtonState() {
 }
 
 // ── Image Upload ──
-const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
-dropZone.onclick = () => fileInput.click();
-dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('drag-over'); };
-dropZone.ondragleave = () => dropZone.classList.remove('drag-over');
-dropZone.ondrop = e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]); };
+const fileInputGallery = document.getElementById('file-input-gallery');
 fileInput.onchange = () => { if (fileInput.files[0]) loadImage(fileInput.files[0]); };
+fileInputGallery.onchange = () => { if (fileInputGallery.files[0]) loadImage(fileInputGallery.files[0]); };
 document.getElementById('preview-remove').onclick = () => {
   imageBase64 = null;
   document.getElementById('preview-wrap').style.display = 'none';
