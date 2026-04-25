@@ -4,220 +4,390 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>輸入規制チェッカー</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0f12; --surface: #151820; --surface2: #1c2030; --border: #2a2f3e;
-    --accent: #3b82f6; --accent-dim: rgba(59,130,246,0.15);
-    --warn: #f59e0b; --warn-dim: rgba(245,158,11,0.12);
-    --ok: #10b981; --ok-dim: rgba(16,185,129,0.12);
-    --danger: #ef4444; --danger-dim: rgba(239,68,68,0.12);
-    --text: #e2e8f0; --text-muted: #64748b; --text-dim: #94a3b8;
-    --radius: 10px; --font: 'Noto Sans JP', sans-serif; --mono: 'DM Mono', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+:root {
+  --text: #1d1d1f;
+  --text-sub: rgba(0,0,0,0.56);
+  --text-ter: rgba(0,0,0,0.35);
+  --bg: #f5f5f7;
+  --surface: #fff;
+  --blue: #0071e3;
+  --blue-bg: rgba(0,113,227,0.08);
+  --blue-border: rgba(0,113,227,0.25);
+  --ok: #1a7f37;
+  --ok-bg: rgba(26,127,55,0.07);
+  --warn: #b45309;
+  --warn-bg: rgba(180,83,9,0.07);
+  --danger: #c0392b;
+  --danger-bg: rgba(192,57,43,0.07);
+  --none-c: rgba(0,0,0,0.28);
+  --border: rgba(0,0,0,0.1);
+  --shadow: 0 1px 4px rgba(0,0,0,0.09);
+  --r: 14px;
+  --font: "Hiragino Kaku Gothic Pro","ヒラギノ角ゴ Pro W3",Meiryo,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:16px 16px 48px;font-size:15px;line-height:1.5;letter-spacing:-0.2px;}
+.frame{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:10px;}
 
-  header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-  .header-icon { width: 36px; height: 36px; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-  header h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.05em; }
-  header p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+/* ─ Header ─ */
+header{background:var(--surface);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.hicon{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+header h1{font-size:15px;font-weight:600;letter-spacing:-0.3px;}
+header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
 
-  main { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-  .step { width: 20px; height: 20px; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 4px; font-size: 10px; font-family: var(--mono); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 500; flex-shrink: 0; }
-  .card-header h2 { font-size: 13px; font-weight: 500; }
-  .card-body { padding: 16px; }
+/* ─ Card ─ */
+.card{background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);}
+.card-hd{padding:13px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.card-title{display:flex;align-items:center;gap:10px;}
+.snum{width:22px;height:22px;background:var(--blue);border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.snum.green{background:var(--ok);}
+.card-hd h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;}
 
-  #drop-zone { border: 1.5px dashed var(--border); border-radius: 8px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
-  #drop-zone:hover, #drop-zone.drag-over { border-color: var(--accent); background: var(--accent-dim); }
-  #drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
-  #drop-zone p { font-size: 13px; color: var(--text-dim); }
-  #drop-zone small { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
-  #file-input { display: none; }
-  #preview-wrap { display: none; margin-top: 12px; border-radius: 8px; overflow: hidden; position: relative; }
-  #preview-img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
-  #preview-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border: none; border-radius: 6px; color: #fff; font-size: 12px; padding: 4px 8px; cursor: pointer; }
+/* ─ Step1: Upload ─ */
+.drop{border:1.5px dashed rgba(0,0,0,0.15);border-radius:10px;padding:26px 16px;text-align:center;background:#fafafa;cursor:pointer;margin:14px 18px;transition:all 0.2s;}
+.drop:hover,.drop.drag-over{border-color:var(--blue);background:var(--blue-bg);}
+.drop-icon{font-size:28px;margin-bottom:6px;}
+.drop-label{font-size:14px;color:var(--blue);font-weight:500;}
+.drop-sub{font-size:12px;color:var(--text-sub);margin-top:3px;}
+#file-input{display:none;}
+#preview-wrap{display:none;margin:0 18px 14px;border-radius:10px;overflow:hidden;position:relative;}
+#preview-img{width:100%;max-height:220px;object-fit:cover;display:block;}
+#preview-remove{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;color:#fff;font-size:12px;padding:4px 10px;cursor:pointer;}
 
-  .select-all-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .btn-text { font-size: 11px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 2px 4px; text-decoration: underline; }
-  .btn-text:hover { color: var(--accent); }
-  .country-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .country-btn { padding: 10px 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-dim); font-size: 12px; font-family: var(--font); text-align: center; cursor: pointer; transition: all 0.15s; line-height: 1.3; }
-  .country-btn .flag { font-size: 18px; display: block; margin-bottom: 3px; }
-  .country-btn:hover { border-color: var(--accent); color: var(--text); }
-  .country-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+/* ─ Step2: Countries ─ */
+.row-actions{display:flex;gap:12px;}
+.link-btn{font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px 14px 14px;}
+.cbtn{padding:10px 4px;border-radius:10px;border:1.5px solid var(--border);background:#fafafa;color:var(--text-sub);font-size:12px;font-family:var(--font);text-align:center;cursor:pointer;line-height:1.3;transition:all 0.15s;}
+.cbtn .flag{font-size:18px;display:block;margin-bottom:3px;}
+.cbtn.sel{border-color:var(--blue);background:var(--blue-bg);color:var(--blue);font-weight:500;}
 
-  #btn-fetch { width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text-dim); font-size: 13px; font-family: var(--font); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  #btn-fetch:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-  #btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
-  #btn-check { width: 100%; padding: 14px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  #btn-check:hover:not(:disabled) { background: #2563eb; }
-  #btn-check:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ─ Step3: Regulation ─ */
+.action-cards{display:flex;flex-direction:column;gap:10px;padding:14px 14px 8px;}
+.action-card{border-radius:12px;border:1.5px solid var(--blue-border);background:var(--blue-bg);overflow:hidden;}
+.ac-header{display:flex;align-items:center;gap:12px;padding:14px 16px;}
+.ac-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-bg);border:1px solid var(--blue-border);color:var(--blue);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ac-text{flex:1;}
+.ac-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.2px;}
+.ac-sub{font-size:12px;color:var(--text-sub);margin-top:2px;}
+.btn-action{padding:9px 18px;border-radius:980px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:5px;}
+.btn-action:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.expand-toggle{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--blue-border);background:#fff;color:var(--blue);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform 0.2s;}
+.expand-toggle.open{transform:rotate(180deg);}
+.ac-body{border-top:1px solid var(--blue-border);background:#fff;display:none;}
+.ac-body.open{display:block;}
+.cr-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,0.06);cursor:pointer;transition:background 0.12s;user-select:none;}
+.cr-row:last-child{border-bottom:none;}
+.cr-row.sel{background:var(--blue-bg);}
+.cr-flag{font-size:18px;flex-shrink:0;}
+.cr-name{flex:1;font-size:13px;font-weight:500;}
+.cr-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.cr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.cr-status-text{font-size:11px;}
+.ok-text{color:var(--ok);}
+.warn-text{color:var(--warn);}
+.none-text{color:var(--none-c);}
+.cr-date{font-size:11px;color:var(--text-ter);min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+.cr-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;transition:all 0.15s;}
+.cr-check.checked{background:var(--blue);border-color:var(--blue);}
+.run-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--blue-bg);border-top:1px solid var(--blue-border);}
+.run-bar-text{font-size:12px;color:var(--blue);}
+.ac-note{font-size:11px;color:var(--text-sub);padding:8px 14px 12px;line-height:1.6;}
+.reg-status-box{display:none;margin:0 14px 12px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;}
+.reg-status-box.ok{background:var(--ok-bg);color:var(--ok);}
+.reg-status-box.error{background:var(--danger-bg);color:var(--danger);}
 
-  #reg-info-box { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 11px; color: var(--text-dim); }
-  .reg-header { font-size: 12px; font-weight: 600; color: var(--ok); margin-bottom: 8px; }
+/* ─ Step4: Check ─ */
+.btn-check{width:100%;padding:15px;border-radius:980px;border:none;background:var(--blue);color:#fff;font-size:16px;font-weight:500;font-family:var(--font);cursor:pointer;letter-spacing:-0.2px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-check:disabled{opacity:0.45;cursor:not-allowed;}
+.check-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
 
-  #results { display: none; }
-  .result-summary { padding: 14px 16px; border-radius: var(--radius); margin-bottom: 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
-  .result-summary.ok { background: var(--ok-dim); border: 1px solid var(--ok); color: var(--ok); }
-  .result-summary.warn { background: var(--warn-dim); border: 1px solid var(--warn); color: var(--warn); }
-  .result-summary.danger { background: var(--danger-dim); border: 1px solid var(--danger); color: var(--danger); }
-  .result-summary .icon { font-size: 20px; }
+/* ─ Results ─ */
+#results{display:none;}
+.result-summary{padding:14px 16px;border-radius:12px;margin-bottom:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);}
+.result-summary.ok{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(26,127,55,0.2);}
+.result-summary.warn{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(180,83,9,0.2);}
+.result-summary.danger{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(192,57,43,0.2);}
+.result-summary .ricon{font-size:20px;}
+.ingredients-box{background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.ingredients-box h3{font-size:11px;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.ingredient-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.ingredient-tag{padding:3px 10px;border-radius:20px;font-size:12px;background:#f5f5f7;border:1px solid var(--border);color:var(--text-sub);}
+.ingredient-tag.flagged{background:var(--danger-bg);border-color:rgba(192,57,43,0.3);color:var(--danger);}
+.ingredient-tag.caution{background:var(--warn-bg);border-color:rgba(180,83,9,0.3);color:var(--warn);}
+.country-result{background:var(--surface);border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:var(--shadow);}
+.country-result-header{padding:13px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background 0.15s;}
+.country-result-header:hover{background:#fafafa;}
+.country-result-header .cflag{font-size:20px;}
+.country-result-header .cname{flex:1;font-size:13px;font-weight:600;}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;}
+.badge-ok{background:var(--ok-bg);color:var(--ok);}
+.badge-warn{background:var(--warn-bg);color:var(--warn);}
+.badge-danger{background:var(--danger-bg);color:var(--danger);}
+.chevron{color:var(--text-ter);font-size:11px;transition:transform 0.2s;}
+.country-result.open .chevron{transform:rotate(180deg);}
+.country-result-body{display:none;padding:14px 16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-sub);line-height:1.7;}
+.country-result.open .country-result-body{display:block;}
+.issue-item{background:var(--danger-bg);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.issue-name{font-size:13px;font-weight:600;color:var(--danger);margin-bottom:4px;}
+.issue-reason{font-size:12px;color:var(--text-sub);margin-bottom:6px;}
+.caution-item{background:var(--warn-bg);border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.caution-name{font-size:13px;font-weight:600;color:var(--warn);margin-bottom:4px;}
+.sources-toggle{font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;margin-top:4px;display:block;}
+.sources-list{display:none;margin-top:8px;padding:10px 12px;background:#f5f5f7;border-radius:8px;}
+.sources-list.open{display:block;}
+.source-link{display:block;font-size:11px;color:var(--blue);text-decoration:none;margin-bottom:4px;word-break:break-all;}
+.source-link:hover{text-decoration:underline;}
+.error-box{background:var(--danger-bg);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--danger);}
+.result-note{font-size:11px;color:var(--text-ter);margin-top:10px;line-height:1.6;}
 
-  .ingredients-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
-  .ingredients-box h3 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-  .ingredient-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ingredient-tag { padding: 3px 10px; border-radius: 20px; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); }
-  .ingredient-tag.flagged { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
-  .ingredient-tag.caution { background: var(--warn-dim); border-color: var(--warn); color: var(--warn); }
-
-  .country-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
-  .country-result-header { padding: 13px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; transition: background 0.15s; }
-  .country-result-header:hover { background: var(--surface2); }
-  .country-result-header .flag { font-size: 20px; }
-  .country-result-header .name { flex: 1; font-size: 13px; font-weight: 500; }
-  .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
-  .status-ok { background: var(--ok-dim); color: var(--ok); border: 1px solid var(--ok); }
-  .status-warn { background: var(--warn-dim); color: var(--warn); border: 1px solid var(--warn); }
-  .status-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
-  .chevron { color: var(--text-muted); font-size: 12px; transition: transform 0.2s; }
-  .country-result.open .chevron { transform: rotate(180deg); }
-  .country-result-body { display: none; padding: 14px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-dim); line-height: 1.7; }
-  .country-result.open .country-result-body { display: block; }
-
-  .issue-item { background: var(--danger-dim); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
-  .issue-item .issue-name { font-size: 13px; font-weight: 600; color: var(--danger); margin-bottom: 4px; }
-  .issue-item .issue-reason { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-  .caution-item { background: var(--warn-dim); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
-  .caution-item .issue-name { font-size: 13px; font-weight: 600; color: var(--warn); margin-bottom: 4px; }
-  .caution-item .issue-reason { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-
-  .sources-toggle { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; margin-top: 4px; display: block; }
-  .sources-list { display: none; margin-top: 8px; padding: 10px 12px; background: var(--surface2); border-radius: 6px; }
-  .sources-list.open { display: block; }
-  .source-link { display: block; font-size: 11px; color: var(--accent); text-decoration: none; margin-bottom: 4px; word-break: break-all; }
-  .source-link:hover { text-decoration: underline; }
-  .source-text { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
-  .error-box { background: var(--danger-dim); border: 1px solid var(--danger); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--danger); }
-
-  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 18px; font-size: 12px; color: var(--text); opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(29,29,31,0.88);border-radius:20px;padding:10px 18px;font-size:12px;color:#fff;opacity:0;pointer-events:none;transition:all 0.25s;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
+<div class="frame">
 
 <header>
-  <div class="header-icon">🔍</div>
+  <div class="hicon">🔍</div>
   <div>
     <h1>輸入規制チェッカー</h1>
     <p>原材料表示 × 各国輸入規制の照合ツール</p>
   </div>
 </header>
 
-<main>
-  <div class="card">
-    <div class="card-header"><div class="step">1</div><h2>原材料表示の写真をアップロード</h2></div>
-    <div class="card-body">
-      <div id="drop-zone">
-        <div class="icon">📷</div>
-        <p>タップして写真を選択</p>
-        <small>カメラ撮影またはファイルから選択</small>
-        <input type="file" id="file-input" accept="image/*">
-      </div>
-      <div id="preview-wrap">
-        <img id="preview-img" src="" alt="プレビュー">
-        <button id="preview-remove">✕ 削除</button>
-      </div>
+<!-- Step 1 -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-title"><div class="snum">1</div><h2>原材料表示の写真</h2></div>
+  </div>
+  <div id="drop-zone" class="drop">
+    <div class="drop-icon">📷</div>
+    <div class="drop-label">タップして写真を選択</div>
+    <div class="drop-sub">カメラ撮影またはファイルから選択</div>
+    <input type="file" id="file-input" accept="image/*">
+  </div>
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="プレビュー">
+    <button id="preview-remove">✕ 削除</button>
+  </div>
+</div>
+
+<!-- Step 2 -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-title"><div class="snum">2</div><h2>チェック対象国</h2></div>
+    <div class="row-actions">
+      <button class="link-btn" onclick="selectAll()">全選択</button>
+      <button class="link-btn" style="color:rgba(0,0,0,0.35);" onclick="clearAll()">解除</button>
     </div>
   </div>
+  <div class="cgrid" id="country-grid"></div>
+</div>
 
-  <div class="card">
-    <div class="card-header"><div class="step">2</div><h2>対象国を選択</h2></div>
-    <div class="card-body">
-      <div class="select-all-row">
-        <button class="btn-text" onclick="selectAll()">すべて選択</button>
-        <button class="btn-text" onclick="clearAll()">すべて解除</button>
-      </div>
-      <div class="country-grid" id="country-grid"></div>
-    </div>
+<!-- Step 3 -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-title"><div class="snum green">3</div><h2>輸入規制情報の更新</h2></div>
   </div>
 
-  <button id="btn-fetch" onclick="fetchRegulations()">
-    <span id="fetch-spinner" class="btn-spinner" style="border-color:rgba(100,116,139,0.3);border-top-color:#64748b;"></span>
-    <span id="fetch-label">🌐 最新の輸入規制情報を取得</span>
-  </button>
+  <div class="action-cards">
 
-  <div id="reg-info-box"></div>
+    <!-- 一括更新 -->
+    <div class="action-card">
+      <div class="ac-header">
+        <div class="ac-icon">↻</div>
+        <div class="ac-text">
+          <div class="ac-title">選択国を一括更新</div>
+          <div class="ac-sub" id="bulk-sub">選択中の国をまとめて今すぐ取得</div>
+        </div>
+        <button class="btn-action" id="btn-bulk" onclick="fetchBulk()">
+          <span id="bulk-spinner" class="btn-spinner"></span>
+          <span id="bulk-label">取得実行</span>
+        </button>
+      </div>
+    </div>
 
-  <button id="btn-check" onclick="runCheck()">
-    <span id="check-spinner" class="btn-spinner"></span>
-    <span id="check-label">✓ 確認</span>
-  </button>
+    <!-- 国ごとに選んで更新 -->
+    <div class="action-card">
+      <div class="ac-header" onclick="toggleExpand()" style="cursor:pointer;">
+        <div class="ac-icon">↻</div>
+        <div class="ac-text">
+          <div class="ac-title">国ごとに選んで更新</div>
+          <div class="ac-sub">取得日を確認しながら国を指定</div>
+        </div>
+        <div class="expand-toggle" id="expand-toggle">▼</div>
+      </div>
+      <div class="ac-body" id="ac-body">
+        <div id="country-reg-list"></div>
+        <div class="run-bar" id="run-bar" style="display:none;">
+          <span class="run-bar-text" id="run-bar-text"></span>
+          <button class="btn-action" id="btn-run" onclick="fetchSelected()">
+            <span id="run-spinner" class="btn-spinner"></span>
+            <span id="run-label">取得実行</span>
+          </button>
+        </div>
+        <div class="ac-note">💡 選択後にまとめて取得します（APIの無駄遣いを防ぐため）</div>
+      </div>
+    </div>
 
-  <div id="results"></div>
-</main>
+  </div>
 
+  <div class="reg-status-box" id="reg-status-box"></div>
+</div>
+
+<!-- Step 4 -->
+<button class="btn-check" id="btn-check" onclick="runCheck()">
+  <span id="check-spinner" class="check-spinner"></span>
+  <span id="check-label">✓ 確認</span>
+</button>
+
+<!-- Results -->
+<div id="results"></div>
+
+</div><!-- /frame -->
 <div id="toast"></div>
 
 <script>
 // ================================================================
-// ★ デプロイ後にGASのURLをここに貼る
-// ================================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWa2DFoCYF7vjSWm2g0FupNxVsoGBbxqvLLNIICtcwTU71zvA7y1BePUSWKrk-Ohka/exec';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const STALE_DAYS = 30; // この日数を超えると「古い」
 // ================================================================
 
 const COUNTRIES = [
-  { code: 'US', name: 'アメリカ',     flag: '🇺🇸' },
-  { code: 'SG', name: 'シンガポール', flag: '🇸🇬' },
-  { code: 'KR', name: '韓国',         flag: '🇰🇷' },
-  { code: 'CN', name: '中国',         flag: '🇨🇳' },
-  { code: 'TW', name: '台湾',         flag: '🇹🇼' },
-  { code: 'HK', name: '香港',         flag: '🇭🇰' },
-  { code: 'TH', name: 'タイ',         flag: '🇹🇭' },
-  { code: 'IN', name: 'インド',       flag: '🇮🇳' },
-  { code: 'ID', name: 'インドネシア', flag: '🇮🇩' },
+  { code:'US', name:'アメリカ',     flag:'🇺🇸' },
+  { code:'SG', name:'シンガポール', flag:'🇸🇬' },
+  { code:'KR', name:'韓国',         flag:'🇰🇷' },
+  { code:'CN', name:'中国',         flag:'🇨🇳' },
+  { code:'TW', name:'台湾',         flag:'🇹🇼' },
+  { code:'HK', name:'香港',         flag:'🇭🇰' },
+  { code:'TH', name:'タイ',         flag:'🇹🇭' },
+  { code:'IN', name:'インド',       flag:'🇮🇳' },
+  { code:'ID', name:'インドネシア', flag:'🇮🇩' },
 ];
 
 let selectedCountries = new Set();
 let imageBase64 = null;
 let imageMediaType = 'image/jpeg';
-let regulationInfo = null;
-let geminiApiKey = null; // GASから起動時に取得
+let geminiApiKey = null;
+let regulationInfo = {}; // { code: { data, fetchedAt } }
+let selectedForUpdate = new Set();
 
-// 起動時にGASからGemini APIキーを取得
-(async () => {
+// ── Init ──────────────────────────────────────────────────────
+loadRegulationFromStorage();
+buildCountryGrid();
+buildCountryRegList();
+fetchGeminiKey();
+
+// ── Gemini key from GAS ──
+async function fetchGeminiKey() {
   try {
     const res = await fetch(GAS_URL + '?action=getKey');
     const data = await res.json();
     if (data.status === 'ok') geminiApiKey = data.key;
-  } catch(e) {
-    console.warn('APIキー取得失敗:', e.message);
-  }
-})();
-
-// Country grid
-COUNTRIES.forEach(c => {
-  const btn = document.createElement('button');
-  btn.className = 'country-btn';
-  btn.dataset.code = c.code;
-  btn.innerHTML = `<span class="flag">${c.flag}</span>${c.name}`;
-  btn.onclick = () => toggleCountry(c.code, btn);
-  document.getElementById('country-grid').appendChild(btn);
-});
-
-function toggleCountry(code, btn) {
-  if (selectedCountries.has(code)) { selectedCountries.delete(code); btn.classList.remove('selected'); }
-  else { selectedCountries.add(code); btn.classList.add('selected'); }
+  } catch(e) { console.warn('Key fetch failed:', e.message); }
 }
-function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); document.querySelector(`[data-code="${c.code}"]`).classList.add('selected'); }); }
-function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('selected')); }
 
-// Image
+// ── LocalStorage ──
+const LS_KEY = 'import_checker_reg_v1';
+function loadRegulationFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) regulationInfo = JSON.parse(raw);
+  } catch(e) {}
+}
+function saveRegulationToStorage() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(regulationInfo)); } catch(e) {}
+}
+
+// ── Country Grid (Step2) ──
+function buildCountryGrid() {
+  const grid = document.getElementById('country-grid');
+  COUNTRIES.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cbtn';
+    btn.dataset.code = c.code;
+    btn.innerHTML = `<span class="flag">${c.flag}</span>${c.name}`;
+    btn.onclick = () => toggleCountry(c.code, btn);
+    grid.appendChild(btn);
+  });
+}
+function toggleCountry(code, btn) {
+  if (selectedCountries.has(code)) { selectedCountries.delete(code); btn.classList.remove('sel'); }
+  else { selectedCountries.add(code); btn.classList.add('sel'); }
+  updateBulkSub();
+}
+function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); document.querySelector(`[data-code="${c.code}"]`).classList.add('sel'); }); updateBulkSub(); }
+function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel')); updateBulkSub(); }
+function updateBulkSub() {
+  const n = selectedCountries.size;
+  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて今すぐ取得` : '対象国を選択してください';
+}
+
+// ── Country Reg List (Step3 展開) ──
+function buildCountryRegList() {
+  const list = document.getElementById('country-reg-list');
+  list.innerHTML = '';
+  COUNTRIES.forEach(c => {
+    const info = regulationInfo[c.code];
+    const row = document.createElement('div');
+    row.className = 'cr-row' + (selectedForUpdate.has(c.code) ? ' sel' : '');
+    row.id = `cr-${c.code}`;
+    row.onclick = () => toggleUpdateSelect(c.code);
+    row.innerHTML = `
+      <span class="cr-flag">${c.flag}</span>
+      <span class="cr-name">${c.name}</span>
+      <div class="cr-info">${statusBadge(c.code)}</div>
+      <span class="cr-date">${fetchedDate(c.code)}</span>
+      <div class="cr-check ${selectedForUpdate.has(c.code) ? 'checked' : ''}" id="chk-${c.code}">${selectedForUpdate.has(c.code) ? '✓' : ''}</div>`;
+    list.appendChild(row);
+  });
+  updateRunBar();
+}
+
+function statusBadge(code) {
+  const info = regulationInfo[code];
+  if (!info) return `<div class="cr-dot" style="background:var(--none-c)"></div><span class="cr-status-text none-text">未取得</span>`;
+  const days = Math.floor((Date.now() - info.fetchedAt) / 86400000);
+  if (days > STALE_DAYS) return `<div class="cr-dot" style="background:var(--warn)"></div><span class="cr-status-text warn-text">古い(${days}日前)</span>`;
+  return `<div class="cr-dot" style="background:var(--ok)"></div><span class="cr-status-text ok-text">取得済み</span>`;
+}
+
+function fetchedDate(code) {
+  const info = regulationInfo[code];
+  if (!info) return '—';
+  const d = new Date(info.fetchedAt);
+  return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function toggleUpdateSelect(code) {
+  if (selectedForUpdate.has(code)) selectedForUpdate.delete(code);
+  else selectedForUpdate.add(code);
+  buildCountryRegList();
+}
+
+function updateRunBar() {
+  const bar = document.getElementById('run-bar');
+  const txt = document.getElementById('run-bar-text');
+  if (selectedForUpdate.size === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const names = [...selectedForUpdate].map(c => COUNTRIES.find(x => x.code === c).name).join('・');
+  txt.textContent = `${names} を選択中`;
+}
+
+function toggleExpand() {
+  const body = document.getElementById('ac-body');
+  const toggle = document.getElementById('expand-toggle');
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+// ── Image Upload ──
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 dropZone.onclick = () => fileInput.click();
@@ -228,22 +398,19 @@ fileInput.onchange = () => { if (fileInput.files[0]) loadImage(fileInput.files[0
 document.getElementById('preview-remove').onclick = () => {
   imageBase64 = null;
   document.getElementById('preview-wrap').style.display = 'none';
-  document.getElementById('drop-zone').style.display = 'block';
+  dropZone.style.display = 'block';
   fileInput.value = '';
 };
+
 function loadImage(file) {
-  imageMediaType = 'image/jpeg'; // 圧縮後はJPEGに統一
+  imageMediaType = 'image/jpeg';
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      // 長辺1280px以内に縮小、JPEG品質0.8で圧縮
       const MAX = 1280;
       let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
+      if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h*MAX/w); w = MAX; } else { w = Math.round(w*MAX/h); h = MAX; } }
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -251,173 +418,143 @@ function loadImage(file) {
       imageBase64 = compressed.split(',')[1];
       document.getElementById('preview-img').src = compressed;
       document.getElementById('preview-wrap').style.display = 'block';
-      document.getElementById('drop-zone').style.display = 'none';
+      dropZone.style.display = 'none';
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-// GAS呼び出し（テキストのみ・GET）
-async function callGAS(prompt, useSearch = false) {
-  const payload = { action: 'callGemini', prompt, imageBase64: null, imageMediaType: null, useSearch };
-  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
-  const res = await fetch(url, { method: 'GET', redirect: 'follow' });
-  const rawText = await res.text();
-  let data;
-  try {
-    data = JSON.parse(rawText);
-  } catch(e) {
-    if (rawText.trim().startsWith('<')) throw new Error('GAS_URLの設定を確認してください');
-    throw new Error('レスポンスのパースに失敗: ' + rawText.slice(0, 120));
-  }
-  if (data.status !== 'ok') throw new Error(data.message || 'GASエラー');
-  return data.text;
-}
+// ── Fetch Regulations ──
+async function fetchRegulations(codes) {
+  // Step1: JETROスクレイピング
+  const jetroPayload = { action: 'fetchJetro', countryCodes: codes };
+  const jetroUrl = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(jetroPayload));
+  const jetroRes = await fetch(jetroUrl, { method:'GET', redirect:'follow' });
+  const jetroData = await jetroRes.json();
+  if (jetroData.status !== 'ok') throw new Error(jetroData.message || 'JETRO取得エラー');
 
-// 画像解析専用：フロントから直接Gemini APIを呼ぶ（GASからキーを取得済み）
-async function callGeminiWithImage(prompt, b64) {
-  if (!geminiApiKey) {
-    // キー未取得の場合は再試行
-    const res = await fetch(GAS_URL + '?action=getKey');
-    const data = await res.json();
-    if (data.status === 'ok') geminiApiKey = data.key;
-    else throw new Error('Gemini APIキーを取得できませんでした');
-  }
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [
-        { inline_data: { mime_type: 'image/jpeg', data: b64 } },
-        { text: prompt }
-      ]}],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-    })
+  // Step2: Geminiで要約
+  const countryNames = codes.map(c => COUNTRIES.find(x => x.code === c).name).join('、');
+  let jetroContext = '';
+  Object.entries(jetroData.results).forEach(([code, info]) => {
+    const c = COUNTRIES.find(x => x.code === code);
+    if (info.text) jetroContext += `\n\n=== ${c?.name}（${code}）===\n${info.text}`;
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini APIエラー (${res.status})`);
-  }
-  const data = await res.json();
-  const text = (data.candidates?.[0]?.content?.parts || [])
-    .filter(p => p.text).map(p => p.text).join('');
-  if (!text) throw new Error('Geminiから応答を取得できませんでした');
-  return text;
-}
 
-// Fetch regulations（JETROページ取得 → Gemini要約）
-async function fetchRegulations() {
-  if (selectedCountries.size === 0) { showToast('⚠ 対象国を選択してください'); return; }
-  setLoading('fetch', true, 'JETROから情報取得中...');
-  const box = document.getElementById('reg-info-box');
-  box.style.display = 'block';
-
-  const countryCodes = [...selectedCountries];
-  const countryNames = countryCodes.map(c => COUNTRIES.find(x => x.code === c).name).join('、');
-
-  try {
-    // Step1: GASでJETROページをスクレイピング
-    const jetroPayload = { action: 'fetchJetro', countryCodes };
-    const jetroUrl = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(jetroPayload));
-    const jetroRes = await fetch(jetroUrl, { method: 'GET', redirect: 'follow' });
-    const jetroRaw = await jetroRes.text();
-    const jetroData = JSON.parse(jetroRaw);
-    if (jetroData.status !== 'ok') throw new Error(jetroData.message || 'JETRO取得エラー');
-
-    // Step2: 取得したJETROテキストをGeminiで要約
-    setLoading('fetch', true, 'Geminiで要約中...');
-    let jetroContext = '';
-    Object.entries(jetroData.results).forEach(([code, info]) => {
-      const c = COUNTRIES.find(x => x.code === code);
-      if (info.text) {
-        jetroContext += `
-
-=== ${c?.name}（${code}）JETROページ情報 ===
-${info.text}`;
-      }
-    });
-
-    const prompt = `以下はJETROの食品輸入規制ページから取得したテキストです。
-対象国：${countryNames}（国コード: ${countryCodes.join(', ')}）
+  const prompt = `以下はJETROの食品輸入規制ページから取得したテキストです。
+対象国：${countryNames}（国コード: ${codes.join(', ')}）
 
 【重要】上記の対象国のみについて整理してください。それ以外の国は絶対に含めないでください。
 各国について：禁止・制限添加物、放射性物質規制、宗教的要件、規制機関を整理してください。
 
 ${jetroContext}
 
-JSONのみで返してください（説明文・マークダウン・コードブロック不要）：
-{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"JETROページ","url":"ページURL"}]}}}
-国コードは必ず ${countryCodes.join(', ')} のみを使用してください。`;
+JSONのみで返してください（コードブロック不要）：
+{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"JETROページ","url":"URL"}]}}}
+国コードは必ず ${codes.join(', ')} のみを使用してください。`;
 
-    const summaryRes = await callGAS(prompt, false);
-    regulationInfo = parseJSON(summaryRes);
+  const summaryRes = await callGAS(prompt, false);
+  const parsed = parseJSON(summaryRes);
 
-    // 選択国以外をフィルタ（念のため）
-    if (regulationInfo?.countries) {
-      Object.keys(regulationInfo.countries).forEach(code => {
-        if (!countryCodes.includes(code)) delete regulationInfo.countries[code];
-      });
-    }
-
-    let html = `<div class="reg-header">✓ JETROから規制情報を取得しました（${countryNames}）</div>`;
-    if (regulationInfo?.countries) {
-      Object.entries(regulationInfo.countries).forEach(([code, info]) => {
-        const c = COUNTRIES.find(x => x.code === code);
-        const jetroUrl2 = jetroData.results[code]?.url || '';
-        html += `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-          <strong style="font-size:12px;color:var(--text);">${c?.flag||''} ${info.name}</strong>
-          <p style="margin-top:4px;">${info.summary}</p>
-          ${jetroUrl2 ? `<a href="${jetroUrl2}" target="_blank" style="font-size:11px;color:var(--accent);">🔗 JETROページを見る</a>` : ''}
-        </div>`;
-      });
-    }
-    box.innerHTML = html;
-    showToast('✓ JETROから最新情報を取得しました');
-  } catch(e) {
-    box.innerHTML = `<div class="error-box">取得エラー: ${e.message}</div>`;
+  // 選択国以外をフィルタ
+  if (parsed?.countries) {
+    Object.keys(parsed.countries).forEach(code => { if (!codes.includes(code)) delete parsed.countries[code]; });
   }
-  setLoading('fetch', false, '🌐 最新の輸入規制情報を取得');
+
+  // 保存
+  const now = Date.now();
+  codes.forEach(code => {
+    if (parsed?.countries?.[code]) {
+      regulationInfo[code] = { data: parsed.countries[code], fetchedAt: now };
+    }
+  });
+  saveRegulationToStorage();
+  return parsed;
 }
 
-// Run check
+// ── Bulk update ──
+async function fetchBulk() {
+  if (selectedCountries.size === 0) { showToast('⚠ 対象国を選択してください'); return; }
+  setLoading('bulk', true, '取得中...');
+  const box = document.getElementById('reg-status-box');
+  box.style.display = 'none';
+  try {
+    const codes = [...selectedCountries];
+    await fetchRegulations(codes);
+    buildCountryRegList();
+    box.className = 'reg-status-box ok';
+    box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を取得しました`;
+    box.style.display = 'block';
+    showToast('✓ 一括取得完了');
+  } catch(e) {
+    box.className = 'reg-status-box error';
+    box.textContent = `取得エラー: ${e.message}`;
+    box.style.display = 'block';
+  }
+  setLoading('bulk', false, '取得実行');
+}
+
+// ── Selected update ──
+async function fetchSelected() {
+  if (selectedForUpdate.size === 0) { showToast('⚠ 更新する国を選択してください'); return; }
+  setLoading('run', true, '取得中...');
+  const box = document.getElementById('reg-status-box');
+  box.style.display = 'none';
+  try {
+    const codes = [...selectedForUpdate];
+    await fetchRegulations(codes);
+    selectedForUpdate.clear();
+    buildCountryRegList();
+    box.className = 'reg-status-box ok';
+    box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を取得しました`;
+    box.style.display = 'block';
+    showToast('✓ 取得完了');
+  } catch(e) {
+    box.className = 'reg-status-box error';
+    box.textContent = `取得エラー: ${e.message}`;
+    box.style.display = 'block';
+  }
+  setLoading('run', false, '取得実行');
+}
+
+// ── Run Check ──
 async function runCheck() {
   if (!imageBase64) { showToast('⚠ 画像をアップロードしてください'); return; }
   if (selectedCountries.size === 0) { showToast('⚠ 対象国を選択してください'); return; }
   document.getElementById('results').style.display = 'none';
   setLoading('check', true, '確認中... (原材料を読み取り中)');
-
   try {
-    // Step 1: 画像から原材料抽出（フロントから直接Gemini API）
-    const extractRes = await callGeminiWithImage(
-      `この画像の原材料表示を読み取りすべての原材料・添加物をリストアップしてください。日本語の原材料名そのまま。JSONのみで返してください（説明文不要）：{"ingredients":["原材料1","原材料2"],"raw_text":"原材料表示テキスト全体"}`,
+    // Step1: 画像解析（Gemini直接）
+    const extractRes = await callGeminiDirect(
+      `この画像の原材料表示を読み取りすべての原材料・添加物をリストアップしてください。日本語の原材料名そのまま。JSONのみ（コードブロック不要）：{"ingredients":["原材料1","原材料2"],"raw_text":"原材料表示テキスト全体"}`,
       imageBase64
     );
     const extractData = parseJSON(extractRes);
     const ingredients = extractData.ingredients || [];
     if (ingredients.length === 0) throw new Error('画像から原材料を読み取れませんでした。原材料表示部分が写っているか確認してください。');
 
-    // Step 2: 規制照合（1国ずつ処理してJSON肥大化を防ぐ）
+    // Step2: 規制照合
     setLoading('check', true, '確認中... (規制と照合中)');
-    const countryResults = {};
     const codes = [...selectedCountries];
-    for (let i = 0; i < codes.length; i++) {
-      const code = codes[i];
-      const country = COUNTRIES.find(c => c.code === code);
-      setLoading('check', true, `確認中... (${country.name} ${i+1}/${codes.length})`);
-      const regInfo = regulationInfo?.countries?.[code];
-      const regCtx = regInfo ? `参考規制情報: ${regInfo.summary || ''} 主な規制: ${(regInfo.key_restrictions||[]).join('、')}` : '';
-      const prompt = `原材料リスト：${ingredients.join('、')}
-${regCtx}
-上記原材料について${country.name}（${code}）への食品輸出規制を照合してください。
-JSONのみ（説明文・コードブロック不要）：
-{"status":"ok|caution|banned","issues":[{"ingredient":"問題原材料","type":"banned|restricted|caution","reason":"理由80字以内","detail":"詳細150字以内","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}`;
-      const res = await callGAS(prompt, false);
-      const parsed = parseJSON(res);
-      countryResults[code] = parsed;
+    const countryNames = codes.map(c => COUNTRIES.find(x => x.code === c).name).join('、');
+    let regCtx = '';
+    if (Object.keys(regulationInfo).length > 0) {
+      regCtx = '\n参考規制情報:\n' + codes.map(code => {
+        const info = regulationInfo[code];
+        return info ? `${code}:${info.data?.summary||''}` : '';
+      }).filter(Boolean).join('\n');
     }
-    const checkData = { ingredients, countries: countryResults };
+    const checkPrompt = `原材料：${ingredients.join('、')}
+対象国：${codes.join(',')}（${countryNames}）${regCtx}
+
+各国への日本からの食品輸出規制で問題のある原材料を特定してください。
+JSONのみ（コードブロック不要）：
+{"ingredients":["原材料"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"原材料","type":"banned|restricted|caution","reason":"理由60字","detail":"詳細150字","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}}}`;
+
+    const checkRes = await callGAS(checkPrompt, false);
+    const checkData = parseJSON(checkRes);
+    checkData.ingredients = checkData.ingredients || ingredients;
     renderResults(checkData, ingredients);
     setLoading('check', false, '✓ 確認完了');
     showToast('✓ チェック完了');
@@ -428,21 +565,22 @@ JSONのみ（説明文・コードブロック不要）：
   }
 }
 
+// ── Render Results ──
 function renderResults(data, rawIngredients) {
   const container = document.getElementById('results');
   container.style.display = 'block';
   const allIssues = Object.values(data.countries||{}).flatMap(c => c.issues||[]);
-  const hasBanned  = allIssues.some(i => i.type === 'banned');
-  const hasCaution = allIssues.some(i => i.type !== 'banned');
+  const hasBanned = allIssues.some(i => i.type==='banned');
+  const hasCaution = allIssues.some(i => i.type!=='banned');
 
   const summaryHTML = hasBanned
-    ? `<div class="result-summary danger"><span class="icon">🚫</span>輸入禁止に該当する可能性のある成分が含まれています</div>`
+    ? `<div class="result-summary danger"><span class="ricon">🚫</span>輸入禁止に該当する可能性のある成分が含まれています</div>`
     : hasCaution
-    ? `<div class="result-summary warn"><span class="icon">⚠️</span>追加確認が必要な成分が含まれています</div>`
-    : `<div class="result-summary ok"><span class="icon">✅</span>選択した全国において明らかな規制該当項目は見つかりませんでした</div>`;
+    ? `<div class="result-summary warn"><span class="ricon">⚠️</span>追加確認が必要な成分が含まれています</div>`
+    : `<div class="result-summary ok"><span class="ricon">✅</span>選択した全国において明らかな規制該当項目は見つかりませんでした</div>`;
 
-  const flaggedSet = new Set(allIssues.filter(i => i.type==='banned').map(i => i.ingredient));
-  const cautionSet = new Set(allIssues.filter(i => i.type!=='banned').map(i => i.ingredient));
+  const flaggedSet = new Set(allIssues.filter(i=>i.type==='banned').map(i=>i.ingredient));
+  const cautionSet = new Set(allIssues.filter(i=>i.type!=='banned').map(i=>i.ingredient));
   const ingredients = data.ingredients?.length ? data.ingredients : rawIngredients;
 
   const tagsHTML = `<div class="ingredients-box">
@@ -457,80 +595,113 @@ function renderResults(data, rawIngredients) {
   </div>`;
 
   let countriesHTML = '';
-  [...selectedCountries].forEach(code => {
-    const country = COUNTRIES.find(c => c.code === code);
-    const result  = (data.countries||{})[code];
+  const codes = [...selectedCountries];
+  codes.forEach(code => {
+    const country = COUNTRIES.find(c=>c.code===code);
+    const result = (data.countries||{})[code];
     if (!result) return;
-    const banned  = (result.issues||[]).filter(i => i.type==='banned');
-    const cautions = (result.issues||[]).filter(i => i.type!=='banned');
-    const badge = banned.length > 0
-      ? `<span class="status-badge status-danger">禁止成分あり</span>`
-      : cautions.length > 0
-      ? `<span class="status-badge status-warn">要確認</span>`
-      : `<span class="status-badge status-ok">問題なし</span>`;
-
+    const banned = (result.issues||[]).filter(i=>i.type==='banned');
+    const cautions = (result.issues||[]).filter(i=>i.type!=='banned');
+    const badge = banned.length>0 ? `<span class="status-badge badge-danger">禁止成分あり</span>`
+      : cautions.length>0 ? `<span class="status-badge badge-warn">要確認</span>`
+      : `<span class="status-badge badge-ok">問題なし</span>`;
     let bodyHTML = '';
-    banned.forEach(i => { bodyHTML += `<div class="issue-item"><div class="issue-name">🚫 ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;color:var(--text-dim);">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
-    cautions.forEach(i => { bodyHTML += `<div class="caution-item"><div class="issue-name">⚠️ ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;color:var(--text-dim);">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
-    if (result.note) bodyHTML += `<p style="font-size:12px;color:var(--text-dim);margin-top:4px;">📋 ${result.note}</p>`;
-    if (!bodyHTML) bodyHTML = `<p style="font-size:12px;color:var(--ok);">この国への輸出に関する明らかな規制該当項目は見つかりませんでした。</p>`;
-
+    banned.forEach(i => { bodyHTML += `<div class="issue-item"><div class="issue-name">🚫 ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
+    cautions.forEach(i => { bodyHTML += `<div class="caution-item"><div class="caution-name">⚠️ ${i.ingredient}</div><div class="issue-reason">${i.reason}</div><p style="font-size:12px;">${i.detail||''}</p>${renderSources(i.sources)}</div>`; });
+    if (result.note) bodyHTML += `<p style="font-size:12px;margin-top:4px;">📋 ${result.note}</p>`;
+    if (!bodyHTML) bodyHTML = `<p style="color:var(--ok);">この国への輸出に関する明らかな規制該当項目は見つかりませんでした。</p>`;
     countriesHTML += `<div class="country-result" id="res-${code}">
       <div class="country-result-header" onclick="toggleAcc('res-${code}')">
-        <span class="flag">${country.flag}</span><span class="name">${country.name}</span>${badge}<span class="chevron">▼</span>
+        <span class="cflag">${country.flag}</span><span class="cname">${country.name}</span>${badge}<span class="chevron">▼</span>
       </div>
       <div class="country-result-body">${bodyHTML}</div>
     </div>`;
   });
 
   container.innerHTML = summaryHTML + tagsHTML + countriesHTML +
-    `<p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.6;">※ AIによる参考情報です。実際の輸出前には各国規制当局または専門家にご確認ください。</p>`;
+    `<p class="result-note">※ AIによる参考情報です。実際の輸出前には各国規制当局または専門家にご確認ください。</p>`;
 
-  [...selectedCountries].forEach(code => {
+  codes.forEach(code => {
     const r = (data.countries||{})[code];
-    if (r?.issues?.length > 0) document.getElementById(`res-${code}`)?.classList.add('open');
+    if (r?.issues?.length>0) document.getElementById(`res-${code}`)?.classList.add('open');
   });
 }
 
 function renderSources(sources) {
   if (!sources?.length) return '';
-  const id = 'src-' + Math.random().toString(36).slice(2);
-  const links = sources.map(s =>
-    s.url?.startsWith('http')
-      ? `<a class="source-link" href="${s.url}" target="_blank" rel="noopener">🔗 ${s.title||s.url}</a>`
-      : `<span class="source-text">📄 ${s.title}</span>`
+  const id = 'src-'+Math.random().toString(36).slice(2);
+  const links = sources.map(s => s.url?.startsWith('http')
+    ? `<a class="source-link" href="${s.url}" target="_blank" rel="noopener">🔗 ${s.title||s.url}</a>`
+    : `<span style="font-size:11px;color:var(--text-ter);">📄 ${s.title}</span>`
   ).join('');
   return `<button class="sources-toggle" onclick="toggleSrc('${id}')">▶ ソースを見る</button><div class="sources-list" id="${id}">${links}</div>`;
 }
-function toggleSrc(id) {
-  const el = document.getElementById(id);
-  el.classList.toggle('open');
-  el.previousElementSibling.textContent = el.classList.contains('open') ? '▼ ソースを閉じる' : '▶ ソースを見る';
+function toggleSrc(id){ const el=document.getElementById(id); el.classList.toggle('open'); el.previousElementSibling.textContent=el.classList.contains('open')?'▼ ソースを閉じる':'▶ ソースを見る'; }
+function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
+
+// ── API calls ──
+async function callGAS(prompt, useSearch=false) {
+  const payload = { action:'callGemini', prompt, imageBase64:null, imageMediaType:null, useSearch };
+  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+  const res = await fetch(url, { method:'GET', redirect:'follow' });
+  const rawText = await res.text();
+  let data;
+  try { data = JSON.parse(rawText); }
+  catch(e) {
+    if (rawText.trim().startsWith('<')) throw new Error('GAS_URLを確認してください');
+    throw new Error('レスポンスのパースに失敗: '+rawText.slice(0,80));
+  }
+  if (data.status !== 'ok') throw new Error(data.message||'GASエラー');
+  return data.text;
 }
-function toggleAcc(id) { document.getElementById(id).classList.toggle('open'); }
+
+async function callGeminiDirect(prompt, b64) {
+  if (!geminiApiKey) {
+    const res = await fetch(GAS_URL+'?action=getKey');
+    const data = await res.json();
+    if (data.status==='ok') geminiApiKey = data.key;
+    else throw new Error('Gemini APIキーを取得できませんでした');
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      contents:[{role:'user',parts:[
+        {inline_data:{mime_type:'image/jpeg',data:b64}},
+        {text:prompt}
+      ]}],
+      generationConfig:{temperature:0.2,maxOutputTokens:2048}
+    })
+  });
+  if (!res.ok) { const err=await res.json().catch(()=>({})); throw new Error(err.error?.message||`Gemini APIエラー (${res.status})`); }
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join('');
+  if (!text) throw new Error('Geminiから応答を取得できませんでした');
+  return text;
+}
 
 function parseJSON(text) {
-  const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  // まず全体をパース
+  const clean = text.replace(/```json/g,'').replace(/```/g,'').trim();
   try { return JSON.parse(clean); } catch {}
-  // { } で囲まれた部分を抽出
-  const start = clean.indexOf('{');
-  const end   = clean.lastIndexOf('}');
-  if (start !== -1 && end > start) {
-    try { return JSON.parse(clean.slice(start, end + 1)); } catch {}
-  }
-  // それでも失敗したらエラー詳細を出す
-  throw new Error('JSONの解析に失敗しました。モデルの応答: ' + clean.slice(0, 80));
+  const s=clean.indexOf('{'), e=clean.lastIndexOf('}');
+  if (s!==-1&&e>s) { try { return JSON.parse(clean.slice(s,e+1)); } catch {} }
+  throw new Error('JSONの解析に失敗しました。モデルの応答: '+clean.slice(0,80));
 }
+
 function setLoading(type, loading, label) {
-  document.getElementById(`btn-${type}`).disabled = loading;
-  document.getElementById(`${type}-spinner`).style.display = loading ? 'block' : 'none';
-  document.getElementById(`${type}-label`).textContent = label;
+  const btn = document.getElementById(`btn-${type}`);
+  const spinner = document.getElementById(`${type}-spinner`);
+  const lbl = document.getElementById(`${type}-label`);
+  if (btn) btn.disabled = loading;
+  if (spinner) spinner.style.display = loading ? 'block' : 'none';
+  if (lbl) lbl.textContent = label;
 }
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(()=>t.classList.remove('show'), 2500);
 }
 </script>
 </body>
