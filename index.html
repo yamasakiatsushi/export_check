@@ -398,32 +398,26 @@ async function runCheck() {
     const ingredients = extractData.ingredients || [];
     if (ingredients.length === 0) throw new Error('画像から原材料を読み取れませんでした。原材料表示部分が写っているか確認してください。');
 
-    // Step 2: 規制照合
+    // Step 2: 規制照合（1国ずつ処理してJSON肥大化を防ぐ）
     setLoading('check', true, '確認中... (規制と照合中)');
-    const countryNames = [...selectedCountries].map(c => COUNTRIES.find(x => x.code === c).name).join('、');
-    // regulationInfoから選択国のsummaryとkey_restrictionsのみ抽出（プロンプト肥大化防止）
-    let regCtx = '';
-    if (regulationInfo?.countries) {
-      const lines = [];
-      [...selectedCountries].forEach(code => {
-        const info = regulationInfo.countries[code];
-        if (info) {
-          lines.push(`${info.name}: ${info.summary || ''} 主な規制: ${(info.key_restrictions||[]).join('、')}`);
-        }
-      });
-      if (lines.length) regCtx = '\n参考規制情報:\n' + lines.join('\n');
+    const countryResults = {};
+    const codes = [...selectedCountries];
+    for (let i = 0; i < codes.length; i++) {
+      const code = codes[i];
+      const country = COUNTRIES.find(c => c.code === code);
+      setLoading('check', true, `確認中... (${country.name} ${i+1}/${codes.length})`);
+      const regInfo = regulationInfo?.countries?.[code];
+      const regCtx = regInfo ? `参考規制情報: ${regInfo.summary || ''} 主な規制: ${(regInfo.key_restrictions||[]).join('、')}` : '';
+      const prompt = `原材料リスト：${ingredients.join('、')}
+${regCtx}
+上記原材料について${country.name}（${code}）への食品輸出規制を照合してください。
+JSONのみ（説明文・コードブロック不要）：
+{"status":"ok|caution|banned","issues":[{"ingredient":"問題原材料","type":"banned|restricted|caution","reason":"理由80字以内","detail":"詳細150字以内","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}`;
+      const res = await callGAS(prompt, false);
+      const parsed = parseJSON(res);
+      countryResults[code] = parsed;
     }
-    const checkPrompt = `以下の原材料を各国の食品輸入規制と照合してください。${regCtx}
-
-原材料：${ingredients.join('、')}
-対象国：${countryNames}（国コード: ${[...selectedCountries].join(', ')}）
-
-禁止添加物・制限成分・要確認事項を特定してください。
-JSONのみで返してください（説明文・マークダウン・コードブロック不要）：
-{"ingredients":["原材料リスト"],"countries":{"国コード":{"status":"ok|caution|banned","issues":[{"ingredient":"問題原材料","type":"banned|restricted|caution","reason":"理由100字以内","detail":"詳細200字以内","sources":[{"title":"出典","url":"URL"}]}],"note":"注意またはnull"}}}`;
-
-    const checkRes = await callGAS(checkPrompt, true);
-    const checkData = parseJSON(checkRes);
+    const checkData = { ingredients, countries: countryResults };
     renderResults(checkData, ingredients);
     setLoading('check', false, '✓ 確認完了');
     showToast('✓ チェック完了');
