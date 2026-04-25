@@ -307,38 +307,65 @@ async function callGeminiWithImage(prompt, b64) {
   return text;
 }
 
-// Fetch regulations
+// Fetch regulations（JETROページ取得 → Gemini要約）
 async function fetchRegulations() {
   if (selectedCountries.size === 0) { showToast('⚠ 対象国を選択してください'); return; }
-  setLoading('fetch', true, '取得中...');
+  setLoading('fetch', true, 'JETROから情報取得中...');
+  const box = document.getElementById('reg-info-box');
+  box.style.display = 'block';
 
-  const countryNames = [...selectedCountries].map(c => COUNTRIES.find(x => x.code === c).name).join('、');
-  const prompt = `以下の国々への日本からの食品輸入規制について最新情報を調べてまとめてください。
-対象国：${countryNames}（国コード: ${[...selectedCountries].join(', ')}）
-各国について：禁止・制限添加物、放射性物質規制、宗教的要件、規制機関と公式URL。
-JSONのみで返してください（説明文・マークダウン不要）：
-{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"タイトル","url":"URL"}]}}}`;
+  const countryCodes = [...selectedCountries];
+  const countryNames = countryCodes.map(c => COUNTRIES.find(x => x.code === c).name).join('、');
 
   try {
-    const res = await callGAS(prompt, true);
-    regulationInfo = parseJSON(res);
-    const box = document.getElementById('reg-info-box');
-    box.style.display = 'block';
-    let html = `<div class="reg-header">✓ 規制情報を取得しました（${countryNames}）</div>`;
+    // Step1: GASでJETROページをスクレイピング
+    const jetroPayload = { action: 'fetchJetro', countryCodes };
+    const jetroUrl = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(jetroPayload));
+    const jetroRes = await fetch(jetroUrl, { method: 'GET', redirect: 'follow' });
+    const jetroRaw = await jetroRes.text();
+    const jetroData = JSON.parse(jetroRaw);
+    if (jetroData.status !== 'ok') throw new Error(jetroData.message || 'JETRO取得エラー');
+
+    // Step2: 取得したJETROテキストをGeminiで要約
+    setLoading('fetch', true, 'Geminiで要約中...');
+    let jetroContext = '';
+    Object.entries(jetroData.results).forEach(([code, info]) => {
+      const c = COUNTRIES.find(x => x.code === code);
+      if (info.text) {
+        jetroContext += `
+
+=== ${c?.name}（${code}）JETROページ情報 ===
+${info.text}`;
+      }
+    });
+
+    const prompt = `以下はJETROの各国食品輸入規制ページから取得したテキストです。
+各国の輸入規制について禁止・制限添加物、放射性物質規制、宗教的要件、規制機関を整理してください。
+
+${jetroContext}
+
+JSONのみで返してください（説明文・マークダウン不要）：
+{"countries":{"国コード":{"name":"国名","summary":"概要200字以内","key_restrictions":["制限事項"],"radiation_rules":"放射規制またはnull","sources":[{"title":"JETROページ","url":"${jetroData.results[countryCodes[0]]?.url||''}"}]}}}
+国コードは ${countryCodes.join(', ')} を使用してください。`;
+
+    const summaryRes = await callGAS(prompt, false);
+    regulationInfo = parseJSON(summaryRes);
+
+    let html = `<div class="reg-header">✓ JETROから規制情報を取得しました（${countryNames}）</div>`;
     if (regulationInfo?.countries) {
       Object.entries(regulationInfo.countries).forEach(([code, info]) => {
         const c = COUNTRIES.find(x => x.code === code);
+        const jetroUrl2 = jetroData.results[code]?.url || '';
         html += `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
           <strong style="font-size:12px;color:var(--text);">${c?.flag||''} ${info.name}</strong>
           <p style="margin-top:4px;">${info.summary}</p>
+          ${jetroUrl2 ? `<a href="${jetroUrl2}" target="_blank" style="font-size:11px;color:var(--accent);">🔗 JETROページを見る</a>` : ''}
         </div>`;
       });
     }
     box.innerHTML = html;
-    showToast('✓ 最新情報を取得しました');
+    showToast('✓ JETROから最新情報を取得しました');
   } catch(e) {
-    const box = document.getElementById('reg-info-box');
-    box.style.display = 'block';
     box.innerHTML = `<div class="error-box">取得エラー: ${e.message}</div>`;
   }
   setLoading('fetch', false, '🌐 最新の輸入規制情報を取得');
