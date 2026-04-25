@@ -218,7 +218,7 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
         <div class="ac-icon">↻</div>
         <div class="ac-text">
           <div class="ac-title">個別更新</div>
-          <div class="ac-sub">取得日を確認し指定した国の情報を最新化</div>
+          <div class="ac-sub">国を指定して情報を最新化（取得日確認）</div>
         </div>
         <div class="expand-toggle" id="expand-toggle">▼</div>
       </div>
@@ -326,7 +326,7 @@ function selectAll() { COUNTRIES.forEach(c => { selectedCountries.add(c.code); d
 function clearAll()  { selectedCountries.clear(); document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('sel')); updateBulkSub(); }
 function updateBulkSub() {
   const n = selectedCountries.size;
-  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中${n}か国をまとめて今すぐ取得` : '対象国を選択してください';
+  document.getElementById('bulk-sub').textContent = n > 0 ? `選択中の全ての国の情報をまとめて最新化` : '対象国を選択してください';
 }
 
 // ── Country Reg List (Step3 展開) ──
@@ -492,7 +492,7 @@ async function fetchBulk() {
     box.textContent = `取得エラー: ${e.message}`;
     box.style.display = 'block';
   }
-  setLoading('bulk', false, '取得実行');
+  setLoading('bulk', false, '更新実行');
 }
 
 // ── Selected update ──
@@ -515,7 +515,7 @@ async function fetchSelected() {
     box.textContent = `取得エラー: ${e.message}`;
     box.style.display = 'block';
   }
-  setLoading('run', false, '取得実行');
+  setLoading('run', false, '更新実行');
 }
 
 // ── Run Check ──
