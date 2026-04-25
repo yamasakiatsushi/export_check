@@ -664,6 +664,22 @@ function toggleSrc(id){ const el=document.getElementById(id); el.classList.toggl
 function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
 
 // ── API calls ──
+// レート制限時にretrySecond秒待って再試行（最大maxRetries回）
+async function withRetry(fn, maxRetries=3) {
+  for (let i=0; i<=maxRetries; i++) {
+    try { return await fn(); }
+    catch(e) {
+      const msg = e.message || '';
+      const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+      if (retryMatch && i < maxRetries) {
+        const waitSec = Math.ceil(parseFloat(retryMatch[1])) + 2;
+        setLoading('check', true, `レート制限中... ${waitSec}秒後に再試行 (${i+1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+      } else { throw e; }
+    }
+  }
+}
+
 async function callGAS(prompt, useSearch=false) {
   const payload = { action:'callGemini', prompt, imageBase64:null, imageMediaType:null, useSearch };
   const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
@@ -687,22 +703,24 @@ async function callGeminiDirect(prompt, b64) {
     else throw new Error('Gemini APIキーを取得できませんでした');
   }
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-  const res = await fetch(url, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      contents:[{role:'user',parts:[
-        {inline_data:{mime_type:'image/jpeg',data:b64}},
-        {text:prompt}
-      ]}],
-      generationConfig:{temperature:0.2,maxOutputTokens:2048}
-    })
+  return await withRetry(async () => {
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[
+          {inline_data:{mime_type:'image/jpeg',data:b64}},
+          {text:prompt}
+        ]}],
+        generationConfig:{temperature:0.2,maxOutputTokens:2048}
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message||`Gemini APIエラー (${res.status})`);
+    const text = (data.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join('');
+    if (!text) throw new Error('Geminiから応答を取得できませんでした');
+    return text;
   });
-  if (!res.ok) { const err=await res.json().catch(()=>({})); throw new Error(err.error?.message||`Gemini APIエラー (${res.status})`); }
-  const data = await res.json();
-  const text = (data.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join('');
-  if (!text) throw new Error('Geminiから応答を取得できませんでした');
-  return text;
 }
 
 function parseJSON(text) {
