@@ -665,17 +665,24 @@ function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
 
 // ── API calls ──
 // レート制限時にretrySecond秒待って再試行（最大maxRetries回）
-async function withRetry(fn, maxRetries=3) {
+async function withRetry(fn, maxRetries=2) {
   for (let i=0; i<=maxRetries; i++) {
     try { return await fn(); }
     catch(e) {
       const msg = e.message || '';
       const retryMatch = msg.match(/retry in ([\d.]+)s/i);
       if (retryMatch && i < maxRetries) {
-        const waitSec = Math.ceil(parseFloat(retryMatch[1])) + 2;
-        setLoading('check', true, `レート制限中... ${waitSec}秒後に再試行 (${i+1}/${maxRetries})`);
+        // APIが指定した待機時間＋10秒の余裕を持たせる
+        const waitSec = Math.ceil(parseFloat(retryMatch[1])) + 10;
+        setLoading('check', true, `レート制限中... ${waitSec}秒後に自動再試行します`);
         await new Promise(r => setTimeout(r, waitSec * 1000));
-      } else { throw e; }
+      } else {
+        // リトライ上限に達したら分かりやすいメッセージに変換
+        if (retryMatch) {
+          throw new Error(`APIのレート制限に達しました。1分ほど待ってから再度お試しください。`);
+        }
+        throw e;
+      }
     }
   }
 }
