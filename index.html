@@ -235,6 +235,7 @@ let imageMediaType = 'image/jpeg';
 let geminiApiKey = null;
 let regulationInfo = {}; // { code: { data, fetchedAt } }
 let selectedForUpdate = new Set();
+let isUpdating = false; // 更新実行中フラグ
 
 // ── Init ──────────────────────────────────────────────────────
 loadRegulationFromStorage();
@@ -278,17 +279,22 @@ function buildCountryGrid() {
 function toggleCountry(code, btn) {
   if (selectedCountries.has(code)) {
     selectedCountries.delete(code);
-    selectedForUpdate.delete(code); // Step3からも除外
+    selectedForUpdate.delete(code);
     btn.classList.remove('sel');
   } else {
     selectedCountries.add(code);
-    selectedForUpdate.add(code); // Step3にも追加
+    // 更新実行中でなければStep3にもチェック追加、実行中はチェックなしで追加
+    if (!isUpdating) selectedForUpdate.add(code);
     btn.classList.add('sel');
   }
   buildCountryRegList();
 }
 function selectAll() {
-  COUNTRIES.forEach(c => { selectedCountries.add(c.code); selectedForUpdate.add(c.code); document.querySelector(`[data-code="${c.code}"]`).classList.add('sel'); });
+  COUNTRIES.forEach(c => {
+    selectedCountries.add(c.code);
+    if (!isUpdating) selectedForUpdate.add(c.code);
+    document.querySelector(`[data-code="${c.code}"]`).classList.add('sel');
+  });
   buildCountryRegList();
 }
 function clearAll() {
@@ -454,6 +460,7 @@ JSONのみで返してください（コードブロック不要）：
 // ── Update (selected countries) ──
 async function fetchSelected() {
   if (selectedForUpdate.size === 0) { showToast('⚠ 更新する国を選択してください'); return; }
+  isUpdating = true;
   setLoading('run', true, '更新中...');
   const box = document.getElementById('reg-status-box');
   box.style.display = 'none';
@@ -471,6 +478,7 @@ async function fetchSelected() {
     box.textContent = `取得エラー: ${e.message}`;
     box.style.display = 'block';
   }
+  isUpdating = false;
   setLoading('run', false, '↻ 更新実行');
 }
 
