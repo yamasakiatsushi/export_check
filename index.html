@@ -233,7 +233,6 @@ const COUNTRIES = [
 let selectedCountries = new Set();
 let imageBase64 = null;
 let imageMediaType = 'image/jpeg';
-let geminiApiKey = null;
 let regulationInfo = {}; // { code: { data, fetchedAt } }
 let selectedForUpdate = new Set();
 let isUpdating = false; // 更新実行中フラグ
@@ -242,16 +241,9 @@ let isUpdating = false; // 更新実行中フラグ
 loadRegulationFromStorage();
 buildCountryGrid();
 buildCountryRegList();
-fetchGeminiKey();
 
-// ── Gemini key from GAS ──
-async function fetchGeminiKey() {
-  try {
-    const res = await fetch(GAS_URL + '?action=getKey');
-    const data = await res.json();
-    if (data.status === 'ok') geminiApiKey = data.key;
-  } catch(e) { console.warn('Key fetch failed:', e.message); }
-}
+
+
 
 // ── LocalStorage ──
 const LS_KEY = 'import_checker_reg_v1';
@@ -713,67 +705,31 @@ async function withRetry(fn, maxRetries=2) {
   }
 }
 
+// 全リクエストをPOST経由でGASに送る（GET廃止）
 async function callGAS(prompt, useSearch=false) {
-  const payload = { action:'callGemini', prompt, imageBase64:null, imageMediaType:null, useSearch };
-  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
-  const res = await fetch(url, { method:'GET', redirect:'follow' });
+  return await postToGAS({ action:'callGemini', prompt, imageBase64:null, imageMediaType:null, useSearch });
+}
+
+async function callGeminiDirect(prompt, b64) {
+  return await postToGAS({ action:'callGemini', prompt, imageBase64:b64, imageMediaType:'image/jpeg', useSearch:false });
+}
+
+async function postToGAS(payload) {
+  const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  });
   const rawText = await res.text();
   let data;
   try { data = JSON.parse(rawText); }
   catch(e) {
-    if (rawText.trim().startsWith('<')) throw new Error('GAS_URLを確認してください');
-    throw new Error('レスポンスのパースに失敗: '+rawText.slice(0,80));
+    if (rawText.trim().startsWith('<')) throw new Error('GASへのアクセスに失敗しました。時間をおいて再試行してください。');
+    throw new Error('レスポンスのパースに失敗: ' + rawText.slice(0, 80));
   }
-  if (data.status !== 'ok') throw new Error(data.message||'GASエラー');
+  if (data.status !== 'ok') throw new Error(data.message || 'GASエラー');
   return data.text;
-}
-
-async function callGeminiDirect(prompt, b64) {
-  // まずブラウザから直接Gemini APIを試みる
-  try {
-    if (!geminiApiKey) {
-      const res = await fetch(GAS_URL+'?action=getKey');
-      const data = await res.json();
-      if (data.status==='ok') geminiApiKey = data.key;
-      else throw new Error('key_fetch_failed');
-    }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-    return await withRetry(async () => {
-      const res = await fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{role:'user',parts:[
-            {inline_data:{mime_type:'image/jpeg',data:b64}},
-            {text:prompt}
-          ]}],
-          generationConfig:{temperature:0.2,maxOutputTokens:2048}
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message||`Gemini APIエラー (${res.status})`);
-      const text = (data.candidates?.[0]?.content?.parts||[]).filter(p=>p.text).map(p=>p.text).join('');
-      if (!text) throw new Error('Geminiから応答を取得できませんでした');
-      return text;
-    });
-  } catch(e) {
-    // 直接呼び出しが失敗した場合はGAS経由でPOST
-    if (e.message === 'Failed to fetch' || e.message === 'key_fetch_failed') {
-      const payload = JSON.stringify({ action:'callGemini', prompt, imageBase64:b64, imageMediaType:'image/jpeg', useSearch:false });
-      const res = await fetch(GAS_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'payload=' + encodeURIComponent(payload),
-        redirect:'follow'
-      });
-      const rawText = await res.text();
-      let data;
-      try { data = JSON.parse(rawText); } catch { throw new Error('GASレスポンス解析失敗: '+rawText.slice(0,80)); }
-      if (data.status !== 'ok') throw new Error(data.message||'GASエラー');
-      return data.text;
-    }
-    throw e;
-  }
 }
 
 function parseJSON(text) {
