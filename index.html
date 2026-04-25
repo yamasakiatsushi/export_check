@@ -199,6 +199,7 @@ header p{font-size:12px;color:var(--text-sub);margin-top:1px;}
 </div>
 
 <!-- Step 4 -->
+<div id="check-warning" style="display:none;padding:10px 14px;background:var(--warn-bg);border-radius:10px;font-size:12px;color:var(--warn);margin-bottom:8px;"></div>
 <button class="btn-check" id="btn-check" onclick="runCheck()">
   <span id="check-spinner" class="check-spinner"></span>
   <span id="check-label">✓ 確認</span>
@@ -288,6 +289,7 @@ function toggleCountry(code, btn) {
     btn.classList.add('sel');
   }
   buildCountryRegList();
+  updateCheckButtonState();
 }
 function selectAll() {
   COUNTRIES.forEach(c => {
@@ -312,6 +314,7 @@ function buildCountryRegList() {
   if (codes.length === 0) {
     list.innerHTML = '<p style="font-size:12px;color:var(--text-ter);padding:8px 2px;">対象国を選択してください</p>';
     updateSelCount();
+    updateCheckButtonState();
     return;
   }
   codes.forEach(c => {
@@ -327,6 +330,7 @@ function buildCountryRegList() {
     list.appendChild(row);
   });
   updateSelCount();
+  updateCheckButtonState();
 }
 
 function badgeClass(code) {
@@ -363,12 +367,53 @@ function clearAllUpdate() {
   buildCountryRegList();
 }
 
+function updateCheckButtonState() {
+  const btn = document.getElementById('btn-check');
+  const warning = document.getElementById('check-warning');
+  if (!btn || !warning) return;
+  // 選択中の国で未取得のものがあるか確認
+  const missing = [...selectedCountries].filter(code => !regulationInfo[code]);
+  if (missing.length > 0) {
+    const names = missing.map(c => COUNTRIES.find(x => x.code === c).name).join('・');
+    warning.textContent = `⚠ ${names} の規制情報が未取得です。③で更新してから確認してください。`;
+    warning.style.display = 'block';
+    btn.disabled = true;
+    btn.style.opacity = '0.45';
+  } else if (selectedCountries.size === 0) {
+    warning.textContent = '⚠ チェック対象国を選択してください。';
+    warning.style.display = 'block';
+    btn.disabled = true;
+    btn.style.opacity = '0.45';
+  } else {
+    warning.style.display = 'none';
+    btn.disabled = false;
+    btn.style.opacity = '';
+  }
+}
+
 function updateSelCount() {
   const n = selectedForUpdate.size;
   const el = document.getElementById('sel-count');
   if (el) el.textContent = n > 0 ? `${n}か国 選択中` : '';
   const btn = document.getElementById('btn-run');
   if (btn) btn.disabled = n === 0;
+  updateCheckButtonState();
+}
+
+function updateCheckButtonState() {
+  const btnCheck = document.getElementById('btn-check');
+  const warning = document.getElementById('check-warning');
+  if (!btnCheck) return;
+  // 選択国の中に未取得の国があるか確認
+  const missing = [...selectedCountries].filter(code => !regulationInfo[code]);
+  if (missing.length > 0) {
+    const names = missing.map(c => COUNTRIES.find(x => x.code === c).name).join('・');
+    btnCheck.disabled = true;
+    if (warning) { warning.textContent = `⚠ ${names} の規制情報が未取得です`; warning.style.display = 'block'; }
+  } else {
+    btnCheck.disabled = false;
+    if (warning) warning.style.display = 'none';
+  }
 }
 
 // ── Image Upload ──
@@ -469,13 +514,32 @@ async function fetchSelected() {
     await fetchRegulations(codes);
     selectedForUpdate.clear();
     buildCountryRegList();
+    updateCheckButtonState();
     box.className = 'reg-status-box ok';
     box.textContent = `✓ ${codes.map(c=>COUNTRIES.find(x=>x.code===c).name).join('・')} の規制情報を更新しました`;
     box.style.display = 'block';
     showToast('✓ 更新完了');
+    updateCheckButtonState();
   } catch(e) {
+    const msg = e.message || '';
+    const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+    if (retryMatch) {
+      const waitSec = Math.ceil(parseFloat(retryMatch[1]));
+      box.className = 'reg-status-box error';
+      box.style.display = 'block';
+      // カウントダウン表示して自動再試行
+      for (let s = waitSec; s > 0; s--) {
+        box.textContent = `APIのレート制限中です。${s}秒後に自動で再試行します...`;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      box.style.display = 'none';
+      isUpdating = false;
+      setLoading('run', false, '↻ 更新実行');
+      fetchSelected(); // 自動再試行
+      return;
+    }
     box.className = 'reg-status-box error';
-    box.textContent = `取得エラー: ${e.message}`;
+    box.textContent = `取得エラー: ${msg}`;
     box.style.display = 'block';
   }
   isUpdating = false;
@@ -643,7 +707,7 @@ async function withRetry(fn, maxRetries=2) {
       } else {
         // リトライ上限に達したら分かりやすいメッセージに変換
         if (retryMatch) {
-          throw new Error(`APIのレート制限に達しました。1分ほど待ってから再度お試しください。`);
+          throw new Error(`APIの利用上限（1分間10回）に達しました。しばらく待ってから再度お試しください。`);
         }
         throw e;
       }
